@@ -4,12 +4,15 @@ import com.cinema.user_service.dto.request.CreateUserRequest;
 import com.cinema.user_service.dto.request.UpdateUserRequest;
 import com.cinema.user_service.dto.response.UserResponse;
 import com.cinema.user_service.entity.User;
+import com.cinema.user_service.exception.UserNotFoundException;
 import com.cinema.user_service.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 @Service
+@Slf4j
 public class UserServiceImplementation implements UserService {
 
     private final UserRepository userRepository;
@@ -20,6 +23,7 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public List<UserResponse> getAllUsers() {
+        log.info("Fetching all users");
         return userRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
@@ -28,12 +32,15 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public UserResponse getById(Long id) {
-        User user = userRepository.findById(id).orElseThrow(()->new RuntimeException("user  not found with id " +  id));
+        log.info("Fetching user with id {}"  , id);
+        User user = userRepository.findById(id).orElseThrow(()->{ log.warn("User with id {} not found", id);
+            return new UserNotFoundException("user  not found with id " +  id);});
         return mapToResponse(user);
     }
 
     @Override
     public UserResponse createUser(CreateUserRequest request) {
+        log.info("Creating user with email {}"  , request.getEmail());
         User user = new User();
 
         user.setFirstName(request.getFirstName());
@@ -44,6 +51,7 @@ public class UserServiceImplementation implements UserService {
 
 
         User savedUser = userRepository.save(user);
+        log.info("user successfully created with id {} "  , savedUser.getId());
 
 
         return mapToResponse(savedUser);
@@ -51,7 +59,10 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public UserResponse updateUserById(Long id, UpdateUserRequest request) {
-        User user = userRepository.findById(id).orElseThrow(()->new UsernameNotFoundException("user not found with id : " + id));
+        log.info("Updating user with id {}", id);
+        User user = userRepository.findById(id).orElseThrow(()->{ log.warn("User not found with id  {}", id);
+            return new UserNotFoundException("user not found with id : " + id);});
+        
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setPhoneNumber(request.getPhoneNumber());
@@ -60,21 +71,34 @@ public class UserServiceImplementation implements UserService {
         user.setEmail(request.getEmail());
 
         User updatedUser = userRepository.save(user);
-
+        log.info("user updated successfully with id {}" ,  updatedUser.getId());
         return mapToResponse(updatedUser) ;
 
     }
 
     @Override
     public UserResponse findUserByEmail(String email) {
-        User user  =  userRepository.findByEmail(email).orElseThrow(()-> new UsernameNotFoundException("user not found with email" +  email));
+        log.info("Searching user by email {}", email);
+        User user  =  userRepository.findByEmail(email).orElseThrow(
+                ()->{
+                    log.warn("User with email {} not found", email);
+                    return new UserNotFoundException("user not found with email" +  email);});
+
         return mapToResponse(user);
     }
 
     @Override
     public void deleteUserById(Long id) {
-
-        userRepository.deleteById(id);
+        log.info("Deleting user with id {}", id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("User {} not found", id);
+                    return new UserNotFoundException(
+                            "User not found"
+                    );
+                });
+        userRepository.delete(user);
+        log.info("User {} deleted successfully", id);
 
     }
     public UserResponse mapToResponse(User user){
