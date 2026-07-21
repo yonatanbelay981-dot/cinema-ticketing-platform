@@ -5,6 +5,7 @@ import com.cinema.user_service.dto.request.UpdateUserRequest;
 import com.cinema.user_service.dto.response.UserResponse;
 import com.cinema.user_service.entity.User;
 import com.cinema.user_service.repository.UserRepository;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,7 +28,7 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public UserResponse getById(Long id) {
-        User user = userRepository.findById(id).orElseThrow(()->new RuntimeException("user  not found"));
+        User user = userRepository.findById(id).orElseThrow(()->new RuntimeException("user  not found with id " +  id));
         return mapToResponse(user);
     }
 
@@ -50,7 +51,7 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public UserResponse updateUserById(Long id, UpdateUserRequest request) {
-        User user = userRepository.findById(id).orElseThrow(()->new RuntimeException("user not found"));
+        User user = userRepository.findById(id).orElseThrow(()->new UsernameNotFoundException("user not found with id : " + id));
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setPhoneNumber(request.getPhoneNumber());
@@ -66,7 +67,7 @@ public class UserServiceImplementation implements UserService {
 
     @Override
     public UserResponse findUserByEmail(String email) {
-        User user  =  userRepository.findByEmail(email).orElseThrow(()-> new RuntimeException("user not found"));
+        User user  =  userRepository.findByEmail(email).orElseThrow(()-> new UsernameNotFoundException("user not found with email" +  email));
         return mapToResponse(user);
     }
 
