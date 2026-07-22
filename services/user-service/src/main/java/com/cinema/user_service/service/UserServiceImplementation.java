@@ -7,10 +7,12 @@ import com.cinema.user_service.entity.User;
 import com.cinema.user_service.exception.UserNotFoundException;
 import com.cinema.user_service.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.data.domain.Page;
+
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import org.springframework.data.domain.Pageable;
+
 @Service
 @Slf4j
 public class UserServiceImplementation implements UserService {
@@ -22,12 +24,11 @@ public class UserServiceImplementation implements UserService {
     }
 
     @Override
-    public List<UserResponse> getAllUsers() {
+    public Page<UserResponse> getAllUsers(Pageable pageable) {
         log.info("Fetching all users");
-        return userRepository.findAll()
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
+
+         return userRepository.findAll(pageable)
+                .map(this::mapToResponse);
     }
 
     @Override
@@ -62,7 +63,7 @@ public class UserServiceImplementation implements UserService {
         log.info("Updating user with id {}", id);
         User user = userRepository.findById(id).orElseThrow(()->{ log.warn("User not found with id  {}", id);
             return new UserNotFoundException("user not found with id : " + id);});
-        
+
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setPhoneNumber(request.getPhoneNumber());
@@ -101,7 +102,64 @@ public class UserServiceImplementation implements UserService {
         log.info("User {} deleted successfully", id);
 
     }
-    public UserResponse mapToResponse(User user){
+    @Override
+    public Page<UserResponse> searchByFirstName(
+            String firstName,
+            Pageable pageable
+    ) {
+        log.info("Searching users by first name: {}", firstName);
+
+        Page<UserResponse> users =  userRepository
+                .findByFirstNameContainingIgnoreCase(
+                        firstName,
+                        pageable
+                )
+                .map(this::mapToResponse);
+        log.info("Found {} users with first name {}"  , users.getTotalElements() , firstName);
+
+        return users;
+    }
+
+
+    @Override
+    public Page<UserResponse> searchByLastName(
+            String lastName,
+            Pageable pageable
+    ){
+        log.info("Searching users by last name: {}", lastName);
+
+        Page<UserResponse> users =  userRepository.findByLastNameContainingIgnoreCase(lastName, pageable)
+                                                  .map(this::mapToResponse);
+
+        log.info("Found {}  users with last-name {}" , users.getTotalElements() , lastName);
+
+        return users;
+
+
+
+
+    }
+
+    @Override
+    public Page<UserResponse> searchByEmail(
+            String email,
+            Pageable pageable
+    ) {
+
+        log.info("Searching users by email: {}", email);
+       Page<UserResponse> users =  userRepository
+                .findByEmailContainingIgnoreCase(
+                        email,
+                        pageable
+                )
+                .map(this::mapToResponse);
+        log.info("Found   users with email {}"  , email);
+
+        return users;
+    }
+
+
+    private UserResponse mapToResponse(User user){
         UserResponse response  =  new UserResponse();
 
         response.setId(user.getId());
