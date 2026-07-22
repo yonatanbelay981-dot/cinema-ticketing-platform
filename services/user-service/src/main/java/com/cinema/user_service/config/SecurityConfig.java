@@ -1,4 +1,4 @@
-package com.cinema.user_service;
+package com.cinema.user_service.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
