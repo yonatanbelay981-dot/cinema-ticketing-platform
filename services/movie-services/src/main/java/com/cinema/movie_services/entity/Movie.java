@@ -2,9 +2,7 @@ package com.cinema.movie_services.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -15,7 +13,14 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "movies")
+@Table(name = "movies" ,
+        indexes = {
+                @Index(name = "idx_movie_title", columnList = "title"),
+                @Index(name = "idx_movie_status", columnList = "status"),
+                @Index(name = "idx_movie_release_date", columnList = "release_date")
+        })
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Movie {
@@ -52,9 +57,11 @@ public class Movie {
             joinColumns = @JoinColumn(name = "movie_id"),
             inverseJoinColumns = @JoinColumn(name = "genre_id")
     )
+
     private Set<Genre> genres = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private MovieStatus status;
     @CreationTimestamp
     private LocalDateTime createdAt;
