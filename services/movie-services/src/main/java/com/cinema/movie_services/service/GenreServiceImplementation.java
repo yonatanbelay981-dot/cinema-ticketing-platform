@@ -1,5 +1,7 @@
 package com.cinema.movie_services.service;
 
+import com.cinema.movie_services.dto.request.CreateGenreRequest;
+import com.cinema.movie_services.dto.request.UpdateGenreRequest;
 import com.cinema.movie_services.dto.response.GenreResponse;
 import com.cinema.movie_services.entity.Genre;
 import com.cinema.movie_services.exception.ResourceNotFoundException;
@@ -30,10 +32,10 @@ public class GenreServiceImplementation implements GenreService{
     }
 
     @Override
-    public GenreResponse createGenre(String name) {
-        log.info("Creating genre with name {}", name);
+    public GenreResponse createGenre(CreateGenreRequest request) {
+        log.info("Creating genre with name {}", request.getName());
         Genre genre = new Genre();
-        genre.setName(name);
+        genre.setName(request.getName());
         Genre savedGenre = genreRepository.save(genre);
         log.info("Genre successfully created with id {}", savedGenre.getId());
         return mapToGenreResponse(savedGenre);
@@ -50,13 +52,13 @@ public class GenreServiceImplementation implements GenreService{
     }
 
     @Override
-    public GenreResponse updateGenre(UUID id, String name) {
+    public GenreResponse updateGenre(UUID id, UpdateGenreRequest request) {
         log.info("Updating genre with id {}", id);
         Genre genre = genreRepository.findById(id).orElseThrow(()->{
             log.warn("While updating Genre with id {} not found", id);
             return new ResourceNotFoundException("Genre not found with id " + id);
         });
-        genre.setName(name);
+        genre.setName(request.getName());
         Genre updatedGenre = genreRepository.save(genre);
         log.info("Genre successfully updated with id {}", updatedGenre.getId());
         return mapToGenreResponse(updatedGenre);
