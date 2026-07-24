@@ -6,6 +6,8 @@ import com.cinema.movie_services.dto.response.MovieResponse;
 import com.cinema.movie_services.entity.Genre;
 import com.cinema.movie_services.entity.Movie;
 import com.cinema.movie_services.entity.MovieStatus;
+import com.cinema.movie_services.exception.GenreNotFoundException;
+import com.cinema.movie_services.exception.ResourceNotFoundException;
 import com.cinema.movie_services.repository.GenreRepository;
 import com.cinema.movie_services.repository.MovieRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +59,12 @@ public class MovieServiceImplementation implements  MovieService {
         Set<Genre> genres = new HashSet<>(
                 genreRepository.findAllById(request.getGenreIds())
         );
+
+        if (genres.size() != request.getGenreIds().size()) {
+            throw new GenreNotFoundException("One or more genres were not found");
+
+        }
+
         movie.setGenres(genres);
 
       Movie savedMovie =  movieRepository.save(movie);
@@ -68,7 +76,7 @@ public class MovieServiceImplementation implements  MovieService {
        log.info("Fetching movie with ID: {}", id);
        Movie movie =  movieRepository.findById(id).orElseThrow(()->{
        log.warn("Movie with ID {} not found", id);
-       return new RuntimeException("Movie not found");
+       return new ResourceNotFoundException("Movie with ID " + id + " not found");
     });
     return mapToMovieResponse(movie);
    }
@@ -126,10 +134,10 @@ public class MovieServiceImplementation implements  MovieService {
             UUID id,
             UpdateMovieRequest request
     ){
-        log.info("updating movies...");
+        log.info("Updating movie with ID {}", id);
         Movie movie = movieRepository.findById(id).orElseThrow(() -> {
             log.warn("while updating Movie with ID {} not found", id);
-            return new RuntimeException("Movie not found");
+            return new ResourceNotFoundException("Movie with ID " + id + " not found");
         });
 
         movie.setTitle(request.getTitle());
@@ -152,9 +160,13 @@ public class MovieServiceImplementation implements  MovieService {
                 genreRepository.findAllById(request.getGenreIds())
         );
 
+        if (genres.size() != request.getGenreIds().size()) {
+            throw new GenreNotFoundException("One or more genres were not found");
+        }
+
         movie.setGenres(genres);
 
-        log.info("update is successful");
+        log.info("Movie {} updated successfully", id);
 
         return mapToMovieResponse(movieRepository.save(movie));
     }
@@ -164,14 +176,14 @@ public class MovieServiceImplementation implements  MovieService {
         log.info("deleting movie with id {}", id);
         Movie movie =  movieRepository.findById(id).orElseThrow(() -> {
             log.warn("while deleting Movie with ID {} not found", id);
-            return new RuntimeException("Movie not found");
+            return new ResourceNotFoundException("Movie with ID " + id + " not found");
         });
 
         movieRepository.delete(movie);
         log.info("movie with id {} deleted successfully", id);
     }
 
-private MovieResponse mapToMovieResponse(com.cinema.movie_services.entity.Movie movie) {
+    private MovieResponse mapToMovieResponse(Movie movie) {
     MovieResponse response = new MovieResponse();
     response.setId(movie.getId());
     response.setTitle(movie.getTitle());

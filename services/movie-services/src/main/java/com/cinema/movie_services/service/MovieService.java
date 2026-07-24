@@ -6,9 +6,10 @@ import com.cinema.movie_services.dto.response.MovieResponse;
 import com.cinema.movie_services.entity.MovieStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
 
 import java.util.UUID;
-
+@Service
 public interface MovieService {
 
 
