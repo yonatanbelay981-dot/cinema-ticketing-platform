@@ -1,9 +1,12 @@
-package com.cinema.movie_services.dto;
+package com.cinema.movie_services.dto.response;
+
+
 
 import com.cinema.movie_services.entity.MovieStatus;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,7 +15,10 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class UpdateMovieRequest {
+public class MovieResponse {
+
+
+    private UUID id;
 
 
     private String title;
@@ -42,6 +48,12 @@ public class UpdateMovieRequest {
     private MovieStatus status;
 
 
-    private List<UUID> genreIds;
+    private List<String> genres;
+
+
+    private LocalDateTime createdAt;
+
+
+    private LocalDateTime updatedAt;
 
 }

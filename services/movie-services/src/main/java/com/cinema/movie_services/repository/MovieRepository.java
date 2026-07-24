@@ -13,4 +13,9 @@ public interface MovieRepository extends JpaRepository<Movie, UUID> {
     Page<Movie> findByStatus(MovieStatus status, Pageable pageable);
     Page<Movie> findByLanguageContainingIgnoreCase(String language, Pageable pageable);
 
+    Page<Movie> findByGenres_NameContainingIgnoreCase(
+            String genre,
+            Pageable pageable
+    );
 }
+
