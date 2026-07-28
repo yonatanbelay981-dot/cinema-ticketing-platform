@@ -1,4 +1,4 @@
 package com.cinema.cinema_service.dto;
 
-public class CreateCInemaRequest {
+public class CinemaResponse {
 }
