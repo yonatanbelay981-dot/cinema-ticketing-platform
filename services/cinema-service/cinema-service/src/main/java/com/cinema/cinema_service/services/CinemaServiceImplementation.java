@@ -47,6 +47,7 @@ public class CinemaServiceImplementation implements CinemaService {
         Cinema cinema = new Cinema();
         cinema.setName(request.getName());
         cinema.setAddress(request.getAddress());
+        cinema.setPhone(request.getPhone());
         Cinema savedCinema = cinemaRepository.save(cinema);
         log.info("Cinema successfully created with id {} "  , savedCinema.getId());
         return mapTOCinemaResponse(savedCinema);
@@ -71,7 +72,7 @@ public class CinemaServiceImplementation implements CinemaService {
     @Override
     public  Page<CinemaResponse> searchCinemaByName(String name  , Pageable pageable) {
        log.info("searching cinema by name {}"  , name);
-      Page<Cinema> cinema =  cinemaRepository.findByName(name , pageable);
+      Page<Cinema> cinema =  cinemaRepository.findByNameContainingIgnoreCase(name , pageable);
        log.info("cinema is successfully found with name {}"  , name);
        return cinema.map(this::mapTOCinemaResponse);
     }
@@ -79,7 +80,7 @@ public class CinemaServiceImplementation implements CinemaService {
     @Override
     public Page<CinemaResponse> searchCinemaByAddress(String address  , Pageable pageable) {
         log.info("searching cinema by address {}"  , address);
-        Page<Cinema> cinema  = cinemaRepository.findByAddress(address ,  pageable);
+        Page<Cinema> cinema  = cinemaRepository.findByAddressContainingIgnoreCase(address ,  pageable);
         log.info("cinema is successfully found with address {}"  , address);
         return cinema.map(this::mapTOCinemaResponse);
     }
@@ -101,6 +102,7 @@ public class CinemaServiceImplementation implements CinemaService {
         response.setId(cinema.getId());
         response.setName(cinema.getName());
         response.setAddress(cinema.getAddress());
+        response.setPhone(cinema.getPhone());
         return response;
     }
 }

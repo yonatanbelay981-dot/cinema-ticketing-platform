@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,4 +19,5 @@ public class CreateCinemaRequest {
     @NotBlank(message = "address of cinema is required")
     private String address;
     private  String phone;
+
 }

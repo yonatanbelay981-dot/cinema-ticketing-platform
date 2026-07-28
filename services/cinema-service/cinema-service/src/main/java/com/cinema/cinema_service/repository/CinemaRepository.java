@@ -8,6 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 public interface CinemaRepository extends JpaRepository<Cinema  , UUID> {
-     Page<Cinema> findByName(String name , Pageable pageable);
-    Page<Cinema> findByAddress(String address ,  Pageable pageable);
+     Page<Cinema> findByNameContainingIgnoreCase(String name , Pageable pageable);
+    Page<Cinema> findByAddressContainingIgnoreCase(String address ,  Pageable pageable);
 }
