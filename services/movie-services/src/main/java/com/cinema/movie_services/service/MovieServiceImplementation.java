@@ -6,6 +6,7 @@ import com.cinema.movie_services.dto.response.MovieResponse;
 import com.cinema.movie_services.entity.Genre;
 import com.cinema.movie_services.entity.Movie;
 import com.cinema.movie_services.entity.MovieStatus;
+import com.cinema.movie_services.event.MovieEvent;
 import com.cinema.movie_services.exception.GenreNotFoundException;
 import com.cinema.movie_services.exception.ResourceNotFoundException;
 import com.cinema.movie_services.repository.GenreRepository;
@@ -13,23 +14,28 @@ import com.cinema.movie_services.repository.MovieRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
+
 public class MovieServiceImplementation implements  MovieService {
 
-    public MovieServiceImplementation(MovieRepository movieRepository, GenreRepository genreRepository) {
+    public MovieServiceImplementation(MovieRepository movieRepository, GenreRepository genreRepository, KafkaProducerService kafkaProducerService) {
         this.movieRepository = movieRepository;
         this.genreRepository = genreRepository;
+        this.kafkaProducerService = kafkaProducerService;
     }
 
     private final MovieRepository movieRepository;
     private final GenreRepository genreRepository;
+    private final KafkaProducerService kafkaProducerService;
 
     @Override
    public Page<MovieResponse> getAllMovies(Pageable pageable){
@@ -68,8 +74,39 @@ public class MovieServiceImplementation implements  MovieService {
         movie.setGenres(genres);
 
       Movie savedMovie =  movieRepository.save(movie);
+        CompletableFuture<SendResult<String, MovieEvent>> future = kafkaProducerService.publish(
+                new MovieEvent(
+
+                        MovieEvent.EventType.MOVIE_CREATED,
+                        savedMovie.getId(),
+                        savedMovie.getTitle(),
+                        savedMovie.getDuration(),
+                        savedMovie.getLanguage()
+                )
+        );
+
+        future.thenAccept((result)->{
+
+            log.info(
+                    "Published CREATED event for movie {} at offset {}",
+                    savedMovie.getId(),
+                    result.getRecordMetadata().offset()
+            );
+
+
+
+        }).exceptionally((ex)->{
+            log.error(
+                    "Failed publishing CREATED event for movie {}",
+                    savedMovie.getId(),
+                    ex
+            );
+            return null;
+        });
+
       return  mapToMovieResponse(savedMovie);
    }
+
 
     @Override
    public MovieResponse getMovieById(UUID id) {
@@ -168,6 +205,32 @@ public class MovieServiceImplementation implements  MovieService {
 
         log.info("Movie {} updated successfully", id);
 
+        CompletableFuture<SendResult<String  , MovieEvent>>  future =  kafkaProducerService.publish(
+                new MovieEvent(
+                        MovieEvent.EventType.MOVIE_UPDATED,
+                        movie.getId(),
+                        movie.getTitle(),
+                        movie.getDuration(),
+                        movie.getLanguage()
+                )
+        );
+        future.thenAccept((result->{
+            log.info(
+                    "Published UPDATED event for movie {} at offset {}",
+                    movie.getId(),
+                    result.getRecordMetadata().offset()
+            );
+
+        }
+        )).exceptionally((ex)->{
+            log.error(
+                    "Failed publishing UPDATED event for movie {}",
+                    movie.getId(),
+                    ex
+            );
+            return null;
+        });
+
         return mapToMovieResponse(movieRepository.save(movie));
     }
 
@@ -181,6 +244,29 @@ public class MovieServiceImplementation implements  MovieService {
 
         movieRepository.delete(movie);
         log.info("movie with id {} deleted successfully", id);
+        CompletableFuture<SendResult<String, MovieEvent>> future = kafkaProducerService.publish(
+                new MovieEvent(
+                        MovieEvent.EventType.MOVIE_DELETED,
+                        movie.getId(),
+                        movie.getTitle(),
+                        movie.getDuration(),
+                        movie.getLanguage()
+                )
+        );
+        future.thenAccept((result)->{
+            log.info(
+                    "Published DELETED event for movie {} at offset {}",
+                    movie.getId(),
+                    result.getRecordMetadata().offset()
+            );
+        }).exceptionally((ex)->{
+            log.error(
+                    "Failed publishing DELETED event for movie {}",
+                    movie.getId(),
+                    ex
+            );
+            return null;
+        });
     }
 
     private MovieResponse mapToMovieResponse(Movie movie) {

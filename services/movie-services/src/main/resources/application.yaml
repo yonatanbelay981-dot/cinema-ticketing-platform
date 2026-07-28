@@ -1,8 +1,51 @@
+server:
+  port: 8082
 spring:
   application:
     name: movie-services
+
+  kafka:
+
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
+        linger.ms: 20
+        batch.size: 32768
+        compression.type: snappy
+        acks: all
+
+    consumer:
+
+      group-id: movie-service-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      properties:
+
+          spring.json.trusted.packages: "com.cinema.movie_services.event"
+          max.poll.records: 500
+          session.timeout.ms: 10000
+
+    listener:
+      missing-topics-fatal: false
+      ack-mode: MANUAL-IMMEDIATE
+      concurrency: 3
+app:
+  kafka:
+    topic:
+      movie-events: movie-events
+
+
 
 eureka:
   client:
     serviceUrl:
       defaultZone: http://eureka-server:8761/eureka/
+
+
+

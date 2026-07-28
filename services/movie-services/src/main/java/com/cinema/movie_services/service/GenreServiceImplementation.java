@@ -38,6 +38,8 @@ public class GenreServiceImplementation implements GenreService{
         genre.setName(request.getName());
         Genre savedGenre = genreRepository.save(genre);
         log.info("Genre successfully created with id {}", savedGenre.getId());
+
+
         return mapToGenreResponse(savedGenre);
     }
 
