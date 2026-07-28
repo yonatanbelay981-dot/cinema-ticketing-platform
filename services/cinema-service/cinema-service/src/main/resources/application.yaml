@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: cinema-service
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: cinema-service-group
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      properties:
+          spring.topic.trusted.packages: "com.cinema.movie_services.event"
+
+server:
+    port: 8083
+
+
+
+eureka:
+  client:
+    serviceUrl:
+        defaultZone: http://eureka-server:8761/eureka/
