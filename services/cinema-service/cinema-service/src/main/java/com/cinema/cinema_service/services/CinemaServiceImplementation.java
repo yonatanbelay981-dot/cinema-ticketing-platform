@@ -4,6 +4,7 @@ import com.cinema.cinema_service.dto.CinemaResponse;
 import com.cinema.cinema_service.dto.CreateCinemaRequest;
 import com.cinema.cinema_service.dto.UpdateCinemaRequest;
 import com.cinema.cinema_service.entity.Cinema;
+import com.cinema.cinema_service.exception.CinemaNotFoundException;
 import com.cinema.cinema_service.repository.CinemaRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -35,7 +36,7 @@ public class CinemaServiceImplementation implements CinemaService {
         log.info("find cinema with id {} "  , id);
         Cinema cinemas =  cinemaRepository.findById(id).orElseThrow(()->{
             log.warn("Cinema with id {} not found"  , id);
-            return new RuntimeException("Cinema not found with id " + id);
+            return new CinemaNotFoundException("Cinema not found with id " + id);
         });
        log.info("Cinema with id {} found"  , id);
         return mapTOCinemaResponse(cinemas);
@@ -58,7 +59,7 @@ public class CinemaServiceImplementation implements CinemaService {
         log.info("Updating cinema with id {}"  , id);
         Cinema cinema = cinemaRepository.findById(id).orElseThrow(()->{
             log.warn("cinema not found with id {}"  , id);
-            return new RuntimeException("Cinema not found with id " + id);
+            return new CinemaNotFoundException("Cinema not found with id " + id);
         });
         cinema.setName(request.getName());
         cinema.setAddress(request.getAddress());
@@ -90,7 +91,7 @@ public class CinemaServiceImplementation implements CinemaService {
         log.info("Deleting  cinema with id {}" , id);
         Cinema cinema = cinemaRepository.findById(id).orElseThrow(()->{
             log.warn("cinema was not found with id  {} " , id);
-            return new RuntimeException("cinema was not found with id " + id);
+            return new CinemaNotFoundException("cinema was not found with id " + id);
         });
         cinemaRepository.delete(cinema);
         log.info("cinema with {} id was deleted successfully" , id);

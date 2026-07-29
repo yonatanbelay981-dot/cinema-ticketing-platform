@@ -5,6 +5,8 @@ import com.cinema.cinema_service.dto.HallResponse;
 import com.cinema.cinema_service.dto.UpdateHallRequest;
 import com.cinema.cinema_service.entity.Cinema;
 import com.cinema.cinema_service.entity.Hall;
+import com.cinema.cinema_service.exception.CinemaNotFoundException;
+import com.cinema.cinema_service.exception.HallNotFoundException;
 import com.cinema.cinema_service.repository.CinemaRepository;
 import com.cinema.cinema_service.repository.HallRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +45,7 @@ public class HallServiceImplementation implements HallServices {
         hall.setCapacity(request.getCapacity());
         Cinema cinema  =  cinemaRepository.findById(request.getCinemaId()).orElseThrow(()->{
             log.warn("cinema with the id {} was not found"  , request.getCinemaId());
-            return new RuntimeException("cinema  was not found with id " + request.getCinemaId());
+            return new CinemaNotFoundException("cinema  was not found with id " + request.getCinemaId());
         });
         hall.setCinema(cinema);
         Hall savedHall = hallRepository.save(hall);
@@ -56,7 +58,7 @@ public class HallServiceImplementation implements HallServices {
         log.info("updating hall with id {} " , id);
         Hall hall = hallRepository.findById(id).orElseThrow(()->{
             log.warn("hall was not found with id {} " , id);
-            return new RuntimeException("hall not found with id " + id);
+            return new HallNotFoundException("hall not found with id " + id);
         });
         hall.setName(request.getName());
         hall.setCapacity(request.getCapacity());
@@ -80,7 +82,7 @@ public class HallServiceImplementation implements HallServices {
         log.info("Fetching halls by its id {} "  , id);
         Hall hall =  hallRepository.findById(id).orElseThrow(()->{
             log.warn("halls with the id {} was not found" , id);
-            return  new RuntimeException("halls was not found");
+            return  new HallNotFoundException("halls was not found");
                 }
 
         );
@@ -93,7 +95,7 @@ public class HallServiceImplementation implements HallServices {
         log.info("deleting hall with id  {}"  , id);
         Hall hall =  hallRepository.findById(id).orElseThrow(()->{
             log.warn("to Delete halls with the id {} was not found" , id);
-            return  new RuntimeException("halls was not found");
+            return  new HallNotFoundException("halls was not found");
         });
 
         hallRepository.delete(hall);
