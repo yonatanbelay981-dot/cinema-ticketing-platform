@@ -13,6 +13,8 @@ import java.util.Map;
 public class KafkaConfig {
     @Value("${app.kafka.topic.cinema-events}")
     private String cinemaEvent;
+    @Value("${app.kafka.topic.hall-events}")
+    private String hallEvent;
 
     @Bean
     public NewTopic kafkaConfigHandler(){
@@ -23,6 +25,14 @@ public class KafkaConfig {
                 .build();
 
 
+    }
+    @Bean
+    public NewTopic hallEventsTopic(){
+        return TopicBuilder.name(hallEvent)
+                .partitions(1)
+                .replicas(1)
+                .configs(Map.of("min.insync.replicas" , "1"))
+                .build();
     }
 
 }

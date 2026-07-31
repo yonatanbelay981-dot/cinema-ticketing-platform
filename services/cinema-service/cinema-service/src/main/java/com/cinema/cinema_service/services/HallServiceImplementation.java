@@ -5,6 +5,7 @@ import com.cinema.cinema_service.dto.HallResponse;
 import com.cinema.cinema_service.dto.UpdateHallRequest;
 import com.cinema.cinema_service.entity.Cinema;
 import com.cinema.cinema_service.entity.Hall;
+import com.cinema.cinema_service.event.HallEvent;
 import com.cinema.cinema_service.exception.CinemaNotFoundException;
 import com.cinema.cinema_service.exception.HallNotFoundException;
 import com.cinema.cinema_service.repository.CinemaRepository;
@@ -12,19 +13,24 @@ import com.cinema.cinema_service.repository.HallRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
 @Service
 @Slf4j
 public class HallServiceImplementation implements HallServices {
 
     private final HallRepository hallRepository;
     private final CinemaRepository cinemaRepository;
+    private  final KafkaHallProducerService kafkaHallProducerService;
 
-    public HallServiceImplementation(HallRepository hallRepository, CinemaRepository cinemaRepository) {
+    public HallServiceImplementation(HallRepository hallRepository, CinemaRepository cinemaRepository, KafkaHallProducerService kafkaHallProducerService) {
         this.hallRepository = hallRepository;
         this.cinemaRepository = cinemaRepository;
+        this.kafkaHallProducerService = kafkaHallProducerService;
     }
 
 
@@ -50,6 +56,29 @@ public class HallServiceImplementation implements HallServices {
         hall.setCinema(cinema);
         Hall savedHall = hallRepository.save(hall);
         log.info("created hall with name {}   successfully"  , request.getName());
+
+        CompletableFuture<SendResult<String, HallEvent>> future = kafkaHallProducerService.publish(
+                 new HallEvent(
+
+                HallEvent.EventType.HALL_CREATED,
+                savedHall.getId(),
+                savedHall.getName(),
+                savedHall.getCapacity()
+
+        ));
+
+        future.thenAccept(result->{
+            log.info("Published {} event for hall {} at offset {}",
+                    HallEvent.EventType.HALL_CREATED,
+                    savedHall.getId().toString(),
+                    result.getRecordMetadata().offset()
+            );
+        }).exceptionally(ex-> {
+            log.error("failed publishing for created event for {} hall",
+                    savedHall.getId().toString(), ex);
+            return null;
+        });
+
         return mapToHallResponse(savedHall);
     }
 
@@ -64,6 +93,20 @@ public class HallServiceImplementation implements HallServices {
         hall.setCapacity(request.getCapacity());
         Hall savedHall = hallRepository.save(hall);
         log.info("update was successful with  id {}" , id);
+
+        CompletableFuture<SendResult<String, HallEvent>> future = kafkaHallProducerService.publish(new HallEvent(
+                HallEvent.EventType.HALL_UPDATED,
+                savedHall.getId(),
+                savedHall.getName(),
+                savedHall.getCapacity()
+        ));
+
+        future.thenAccept(result->{
+            log.info("Published {} events for hall {} at offset {}", HallEvent.EventType.HALL_UPDATED, savedHall.getId(), result.getRecordMetadata().offset());
+        }).exceptionally(ex-> {
+            log.error("failed publishing {} event for {} hall", HallEvent.EventType.HALL_UPDATED, savedHall.getId(), ex);
+            return null;
+        });
 
         return mapToHallResponse(savedHall);
 
@@ -100,6 +143,20 @@ public class HallServiceImplementation implements HallServices {
 
         hallRepository.delete(hall);
         log.info("deleting hall with id {} was successful " , id);
+
+        CompletableFuture<SendResult<String, HallEvent>> future = kafkaHallProducerService.publish(new HallEvent(
+                HallEvent.EventType.HALL_DELETED,
+                hall.getId(),
+                hall.getName(),
+                hall.getCapacity()
+        ));
+        future.thenAccept(result->{
+            log.info("published deleted  event for {} hall at {} offset" ,
+                     hall.getId().toString(), result.getRecordMetadata().offset());
+        }).exceptionally(ex->{
+            log.error("failed publishing {} event for {} hall" , HallEvent.EventType.HALL_DELETED, hall.getId().toString(), ex);
+            return null;
+        });
 
 
     }

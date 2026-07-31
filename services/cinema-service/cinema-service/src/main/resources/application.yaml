@@ -27,6 +27,7 @@ app:
   kafka:
     topic:
       cinema-events: cinema-events
+      Hall-availability-events: hall-availability-events
 
 server:
   port: 8083
