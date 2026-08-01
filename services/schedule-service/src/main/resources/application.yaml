@@ -1,33 +1,41 @@
 spring:
   application:
     name: schedule-service
+
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+    producer:
+
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+
+    consumer:
+      group-id: schedule-service-group
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+
+        spring.json.trusted.packages: "com.cinema.schedule_service.event"
+
+        spring.json.use.type.headers: false
+
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+
 eureka:
   client:
     serviceUrl:
-        defaultZone: http://eureka-server:8761/eureka/
-
-kafka:
-  bootstrap-servers: localhost:9092
-  producer:
-    key-serializer: org.apache.kafka.common.serialization.StringSerializer
-    value-serializer: org.springframework.kafka.support.serializer.json.jsonserializer
-    acks: all
-    properties:
-      enable.idempotence: true
-  consumer:
-    group-id: schedule-service-group
-    enable-auto-commit: false
-    auto-offset-reset: earliest
-    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    value-deserializer: org.springframework.kafka.support.serializer.json.jsondeserializer
-    properties:
-      spring.json.trusted.packages: "com.cinema.movie_services.event"
-  listener:
-    ack-mode: MANUAL_IMMEDIATE
-
-  app:
-    kafka:
-      topic:
-        schedule-events: schedule-events
+      defaultZone: http://eureka-server:8761/eureka/
 
 
+app:
+  kafka:
+    topic:
+      schedule-events: schedule-events

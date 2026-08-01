@@ -1,11 +1,14 @@
-package com.cinema.schedule_service.repository;
+package com.cinema.schedule_service.service;
 
 import com.cinema.schedule_service.dto.CreateShowtimeRequest;
 import com.cinema.schedule_service.dto.ShowtimeResponse;
 import com.cinema.schedule_service.dto.UpdateShowtimeRequest;
+import com.cinema.schedule_service.entity.ScheduleStatus;
 import com.cinema.schedule_service.entity.ShowTime;
 import com.cinema.schedule_service.exception.ShowTimeNotFoundException;
-import com.cinema.schedule_service.service.ShowTimeService;
+import com.cinema.schedule_service.repository.HallCacheRepository;
+import com.cinema.schedule_service.repository.MovieCacheRepository;
+import com.cinema.schedule_service.repository.ShowTimeRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,12 +19,16 @@ import java.util.UUID;
 
 @Service
 @Slf4j
-public class ShowTimeRepositoryImplementation implements ShowTimeService {
+public class ShowTimeServiceImplementation implements ShowTimeService {
 
     private final ShowTimeRepository showTimeRepository;
+    private final MovieCacheRepository movieCacheRepository;
+    private final HallCacheRepository hallCacheRepository;
 
-    public ShowTimeRepositoryImplementation(ShowTimeRepository showTimeRepository) {
+    public ShowTimeServiceImplementation(ShowTimeRepository showTimeRepository, MovieCacheRepository movieCacheRepository, HallCacheRepository hallCacheRepository) {
         this.showTimeRepository = showTimeRepository;
+        this.movieCacheRepository = movieCacheRepository;
+        this.hallCacheRepository = hallCacheRepository;
     }
 
     @Override
@@ -47,12 +54,40 @@ public class ShowTimeRepositoryImplementation implements ShowTimeService {
 
     @Override
     public ShowtimeResponse createShowTime(CreateShowtimeRequest request) {
-        log.info("creating showTime with movieId {} and hallId{} " , request.getHallId() , request.getMovieId());
+
+        log.info("creating showTime with movieId {} and hallId{} " , request.getMovieId() , request.getHallId());
+        movieCacheRepository.findById(request.getMovieId()).orElseThrow(()->{
+            log.warn("movie with id {} not found" , request.getMovieId());
+            return new IllegalArgumentException("movie not found with id " + request.getMovieId());
+        });
+
+         hallCacheRepository.findById(request.getHallId()).orElseThrow(()->{
+            log.warn("hall with id {} not found" , request.getHallId());
+            return new IllegalArgumentException("hall not found with id " + request.getHallId());
+        });
+
         ShowTime showTime = new ShowTime();
         showTime.setMovieId(request.getMovieId());
         showTime.setHallId(request.getHallId());
         showTime.setStartTime(request.getStartTime());
         showTime.setEndTime(request.getEndTime());
+        showTime.setBasePrice(request.getBasePrice());
+        showTime.setStatus((ScheduleStatus.SCHEDULED));
+
+        if(!request.getEndTime().isAfter(request.getStartTime())){
+            log.warn("endTime {} is not after startTime {}" , request.getEndTime() , request.getStartTime());
+            throw new IllegalArgumentException("endTime " + request.getEndTime() + " is not after startTime " + request.getStartTime());
+        }
+
+        if (showTimeRepository.existsByHallIdAndStartTimeLessThanAndEndTimeGreaterThan(
+                request.getHallId(),
+                request.getEndTime(),
+                request.getStartTime()
+        )) {
+            log.warn("showTime with hallId {} and startTime {} and endTime {} already exists" , request.getHallId() , request.getStartTime() , request.getEndTime());
+            throw new IllegalArgumentException("showTime with hallId " + request.getHallId() + " and startTime " + request.getStartTime() + " and endTime " + request.getEndTime() + " already exists");
+        }
+
         ShowTime savedShowTime = showTimeRepository.save(showTime);
         log.info("showTime created with id {}" , savedShowTime.getId());
         return convertToResponse(savedShowTime);
@@ -61,14 +96,30 @@ public class ShowTimeRepositoryImplementation implements ShowTimeService {
     @Override
     public ShowtimeResponse updateShowTime(UUID id, UpdateShowtimeRequest request) {
         log.info("updating showTime with id {}" , id);
+
         ShowTime showTime = showTimeRepository.findById(id).orElseThrow(()->{
             log.warn("while updating showTime with id {} not found" , id);
             return new ShowTimeNotFoundException("showTime not found with id " + id);
         });
-        showTime.setMovieId(request.getMovieId());
-        showTime.setHallId(request.getHallId());
+
         showTime.setStartTime(request.getStartTime());
         showTime.setEndTime(request.getEndTime());
+        showTime.setBasePrice(request.getBasePrice());
+        showTime.setStatus(request.getStatus());
+
+        if(!request.getEndTime().isAfter(request.getStartTime())){
+            log.warn("while updating the endTime {} is not after startTime {}" , request.getEndTime() , request.getStartTime());
+            throw new IllegalArgumentException("endTime " + request.getEndTime() + " is not after startTime " + request.getStartTime());
+        }
+        if (showTimeRepository.existsByHallIdAndStartTimeLessThanAndEndTimeGreaterThan(
+                showTime.getHallId(),
+                request.getEndTime(),
+                request.getStartTime()
+        )) {
+            log.warn("showTime of startTime {} and endTime {} already exists"  , request.getStartTime() , request.getEndTime());
+            throw new IllegalArgumentException("showTime with hall  startTime " + request.getStartTime() + " and endTime " + request.getEndTime() + " already exists");
+        }
+
         ShowTime savedShowTime = showTimeRepository.save(showTime);
         log.info("showTime updated with id {}" , savedShowTime.getId());
         return convertToResponse(savedShowTime);
@@ -77,7 +128,14 @@ public class ShowTimeRepositoryImplementation implements ShowTimeService {
     @Override
     public void deleteShowTimeById(UUID id) {
         log.info("deleting showTime with id {}" , id);
-        showTimeRepository.deleteById(id);
+        ShowTime showTime = showTimeRepository.findById(id)
+                .orElseThrow(() ->
+                        new ShowTimeNotFoundException(
+                                "ShowTime not found with id " + id
+                        )
+                );
+
+        showTimeRepository.delete(showTime);
         log.info("showTime deleted with id {}" , id);
     }
 
@@ -113,6 +171,8 @@ public class ShowTimeRepositoryImplementation implements ShowTimeService {
         response.setHallId(showTime.getHallId());
         response.setStartTime(showTime.getStartTime());
         response.setEndTime(showTime.getEndTime());
+        response.setBasePrice(showTime.getBasePrice());
+        response.setStatus(showTime.getStatus());
         return response;
     }
 }
