@@ -1,26 +1,34 @@
 package com.cinema.seat_service.service;
 
+import com.cinema.seat_service.dto.LockSeatsRequest;
 import com.cinema.seat_service.dto.SeatResponse;
+import com.cinema.seat_service.dto.ShowtimeSeatResponse;
 import com.cinema.seat_service.dto.UpdateSeatRequest;
+import com.cinema.seat_service.entity.ReservationStatus;
 import com.cinema.seat_service.entity.Seat;
+import com.cinema.seat_service.entity.SeatReservation;
 import com.cinema.seat_service.repository.SeatRepository;
+import com.cinema.seat_service.repository.SeatReservationRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
 
 @Service
 @Slf4j
 public class SeatServiceImplementation implements SeatService {
 
     private final SeatRepository seatRepository;
+    private final SeatReservationRepository seatReservationRepository;
 
-    public SeatServiceImplementation(SeatRepository seatRepository) {
+    public SeatServiceImplementation(SeatRepository seatRepository, SeatReservationRepository seatReservationRepository) {
         this.seatRepository = seatRepository;
+        this.seatReservationRepository = seatReservationRepository;
     }
 
     @Override
@@ -64,6 +72,63 @@ public class SeatServiceImplementation implements SeatService {
         seatRepository.deleteById(id);
         log.info("Deleted seat with id {} successfully" , id);
     }
+
+    @Override
+    public List<ShowtimeSeatResponse>  getSeatMapForShowtime(UUID hallId, UUID showtimeId){
+        log.info("Fetching dynamic seat map for hallId {} and showtimeId {}", hallId, showtimeId);
+        List<Seat> physicalSeats = seatRepository.findByHallId(hallId, Pageable.unpaged()).getContent();
+        List<SeatReservation> activeReservations  =  seatReservationRepository.findActiveReservations(showtimeId , LocalDateTime.now());
+        Map<UUID , String> reservationStatusMap = activeReservations.stream()
+                .collect(Collectors.toMap(SeatReservation::getSeatId, res->res.getStatus().name()));
+
+        return physicalSeats.stream().map(seat -> ShowtimeSeatResponse.builder()
+                .seatId(seat.getId())
+                .rowName(seat.getRowName())
+                .seatNumber(seat.getSeatNumber())
+                .seatType(seat.getSeatType())
+                .status(reservationStatusMap.getOrDefault(seat.getId(), "AVAILABLE"))
+                .build())
+                .collect(Collectors.toList());
+
+    }
+
+    public List<UUID> lockSeatsForCheckout(LockSeatsRequest request) {
+        log.info("Attempting to lock {} seats for showtimeId {}", request.getSeatIds().size(), request.getShowtimeId());
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expirationTime = now.plusMinutes(10); // Hold seats for 10 minutes
+
+        // Fetch existing active locks/bookings
+        List<SeatReservation> activeReservations =
+                seatReservationRepository.findActiveReservations(request.getShowtimeId(), now);
+
+        Set<UUID> unavailableSeatIds = activeReservations.stream()
+                .map(SeatReservation::getSeatId)
+                .collect(Collectors.toSet());
+
+        List<UUID> newlyLockedSeats = new ArrayList<>();
+
+        for (UUID seatId : request.getSeatIds()) {
+            if (unavailableSeatIds.contains(seatId)) {
+                log.warn("Seat {} is already locked/booked for showtime {}", seatId, request.getShowtimeId());
+                continue;
+            }
+
+            SeatReservation lock = SeatReservation.builder()
+                    .showtimeId(request.getShowtimeId())
+                    .seatId(seatId)
+                    .userId(request.getUserId())
+                    .status(ReservationStatus.LOCKED)
+                    .lockExpiration(expirationTime)
+                    .build();
+
+            seatReservationRepository.save(lock);
+            newlyLockedSeats.add(seatId);
+        }
+
+        return newlyLockedSeats;
+    }
+
 
     private SeatResponse convertToResponse(Seat seat) {
         return new SeatResponse(

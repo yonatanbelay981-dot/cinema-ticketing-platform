@@ -1,10 +1,7 @@
 package com.cinema.seat_service.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -14,6 +11,7 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Table(name = "seat_reservations" ,
        uniqueConstraints = {
         @UniqueConstraint(name = "uk_seat_reservation", columnNames = {"showtimeId", "seatId"})
@@ -34,5 +32,5 @@ public class SeatReservation {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ReservationStatus status;
-    private LocalDateTime lockExpiredAt;
+    private LocalDateTime lockExpiration;
 }
