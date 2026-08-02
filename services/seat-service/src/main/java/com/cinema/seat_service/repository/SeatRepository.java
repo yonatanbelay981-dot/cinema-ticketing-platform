@@ -12,6 +12,7 @@ public interface SeatRepository  extends JpaRepository<Seat, UUID> {
 
     Page<Seat> findByHallId(UUID hallId, Pageable pageable);
     Optional<Seat> findByHallIdAndRowNameAndSeatNumber(UUID hallId, String rowName, Integer seatNumber);
-    boolean existByHallIdAndRowNameAndSeatNumber(UUID hallId, String rowName, Integer seatNumber);
+    void deleteByHallId(UUID hallId);
+    boolean existsByHallIdAndRowNameAndSeatNumber(UUID hallId, String rowName, Integer seatNumber);
 
 }
