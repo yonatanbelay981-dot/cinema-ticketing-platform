@@ -5,17 +5,21 @@ import com.cinema.schedule_service.dto.ShowtimeResponse;
 import com.cinema.schedule_service.dto.UpdateShowtimeRequest;
 import com.cinema.schedule_service.entity.ScheduleStatus;
 import com.cinema.schedule_service.entity.ShowTime;
+import com.cinema.schedule_service.event.ShowtimeEvent;
 import com.cinema.schedule_service.exception.ShowTimeNotFoundException;
 import com.cinema.schedule_service.repository.HallCacheRepository;
 import com.cinema.schedule_service.repository.MovieCacheRepository;
 import com.cinema.schedule_service.repository.ShowTimeRepository;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
@@ -24,11 +28,13 @@ public class ShowTimeServiceImplementation implements ShowTimeService {
     private final ShowTimeRepository showTimeRepository;
     private final MovieCacheRepository movieCacheRepository;
     private final HallCacheRepository hallCacheRepository;
+    private final KafkaProducerService kafkaProducerService;
 
-    public ShowTimeServiceImplementation(ShowTimeRepository showTimeRepository, MovieCacheRepository movieCacheRepository, HallCacheRepository hallCacheRepository) {
+    public ShowTimeServiceImplementation(ShowTimeRepository showTimeRepository, MovieCacheRepository movieCacheRepository, HallCacheRepository hallCacheRepository, KafkaProducerService kafkaProducerService) {
         this.showTimeRepository = showTimeRepository;
         this.movieCacheRepository = movieCacheRepository;
         this.hallCacheRepository = hallCacheRepository;
+        this.kafkaProducerService = kafkaProducerService;
     }
 
     @Override
@@ -88,7 +94,33 @@ public class ShowTimeServiceImplementation implements ShowTimeService {
             throw new IllegalArgumentException("showTime with hallId " + request.getHallId() + " and startTime " + request.getStartTime() + " and endTime " + request.getEndTime() + " already exists");
         }
 
+
+
         ShowTime savedShowTime = showTimeRepository.save(showTime);
+        CompletableFuture<SendResult<String , ShowtimeEvent>> future = kafkaProducerService.publish(
+                new ShowtimeEvent(
+                                   ShowtimeEvent.EventType.SHOWTIME_CREATED,
+                                   savedShowTime.getId() ,
+                                   savedShowTime.getMovieId(),
+                                   savedShowTime.getHallId(),
+                                   savedShowTime.getStartTime(),
+                                   savedShowTime.getEndTime()));
+                future.thenAccept(result->{
+
+                                       log.info("published created event for a {} showtime at {} offset" , savedShowTime.getId()  , result.getRecordMetadata().offset() );
+
+        }).exceptionally(ex->{
+
+            log.warn("failed publishing  created event for a {} showtime " , savedShowTime.getId()  ,  ex );
+
+            return null;
+
+        }
+
+
+
+        );
+
         log.info("showTime created with id {}" , savedShowTime.getId());
         return convertToResponse(savedShowTime);
     }
@@ -122,6 +154,26 @@ public class ShowTimeServiceImplementation implements ShowTimeService {
 
         ShowTime savedShowTime = showTimeRepository.save(showTime);
         log.info("showTime updated with id {}" , savedShowTime.getId());
+
+        CompletableFuture<SendResult<String , ShowtimeEvent>> future = kafkaProducerService.publish(
+                new ShowtimeEvent(
+                        ShowtimeEvent.EventType.SHOWTIME_DELETED,
+                        savedShowTime.getId(),
+                        savedShowTime.getMovieId(),
+                        savedShowTime.getHallId(),
+                        savedShowTime.getStartTime(),
+                        savedShowTime.getEndTime()
+                )
+        );
+        future.thenAccept(result->{
+            log.info("published updated event for a {} showtime  at {} offset"  ,  savedShowTime.getId()  ,  result.getRecordMetadata().offset());
+        }).exceptionally(ex->{
+            log.warn(
+                    "failed publishing  updated event for a {} showtime  "  ,  savedShowTime.getId()  ,  ex
+            );
+            return  null;
+        }
+        );
         return convertToResponse(savedShowTime);
     }
 
@@ -137,6 +189,26 @@ public class ShowTimeServiceImplementation implements ShowTimeService {
 
         showTimeRepository.delete(showTime);
         log.info("showTime deleted with id {}" , id);
+
+        CompletableFuture<SendResult<String , ShowtimeEvent>> future = kafkaProducerService.publish(
+                new ShowtimeEvent(
+                        ShowtimeEvent.EventType.SHOWTIME_UPDATED,
+                        showTime.getId(),
+                        showTime.getMovieId(),
+                        showTime.getHallId(),
+                        showTime.getStartTime(),
+                        showTime.getEndTime()
+                )
+        );
+        future.thenAccept(result->{
+            log.info("published deleted event for a {} showtime  at {} offset"  ,  showTime.getId()  ,  result.getRecordMetadata().offset());
+        }).exceptionally(ex->{
+                    log.warn(
+                            "failed publishing  deleted event for a {} showtime  "  ,  showTime.getId()  ,  ex
+                    );
+                    return  null;
+                }
+        );
     }
 
     @Override
