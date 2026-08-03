@@ -80,7 +80,7 @@ public class SeatEventListener {
 
         int seatsPerRow = 10;
         int totalSeats = event.getCapacity();
-
+        List<Seat> seats = new ArrayList<>();
         for (int i = 0; i < totalSeats; i++) {
 
             String rowName = String.valueOf((char) ('A' + (i / seatsPerRow)));
@@ -93,7 +93,7 @@ public class SeatEventListener {
                 continue;
             }
 
-            List<Seat> seats = new ArrayList<>();
+
 
             Seat seat = new Seat();
             seat.setHallId(event.getHallId());
@@ -102,8 +102,9 @@ public class SeatEventListener {
             seat.setSeatType(SeatType.REGULAR);
             seats.add(seat);
 
-            seatRepository.saveAll(seats);
+
         }
+        seatRepository.saveAll(seats);
 
         log.info("Generated {} seats for hall {}", totalSeats, event.getHallId());
     }
