@@ -21,18 +21,24 @@ public class ShowtimeEventListener {
 
     @KafkaListener(topics = "showtime-events", groupId = "seat-service-group")
     public void listenShowtimeEvent(ShowTimeEvent event , Acknowledgment ack) {
-        switch (event.getEventType()){
-            case SHOWTIME_CREATED:
-            case SHOWTIME_UPDATED:
-                showtimeUpsert(event);
-                break;
-            case SHOWTIME_DELETED:
-                showtimeDelete(event.getShowtimeId());
-                break;
-            default:
-                log.warn("Unknown showtime event type: {}", event.getEventType());
+        try {
+            switch (event.getEventType()){
+                case SHOWTIME_CREATED:
+                case SHOWTIME_UPDATED:
+                    showtimeUpsert(event);
+                    break;
+                case SHOWTIME_DELETED:
+                    showtimeDelete(event.getShowtimeId());
+                    break;
+                default:
+                    log.warn("Unknown showtime event type: {}", event.getEventType());
+            }
+            ack.acknowledge();
+
+        }catch (Exception e) {
+            log.error("Failed processing showTime event {}", event.getStartTime(), e);
         }
-        ack.acknowledge();
+
     }
 
     public void showtimeUpsert(ShowTimeEvent event){

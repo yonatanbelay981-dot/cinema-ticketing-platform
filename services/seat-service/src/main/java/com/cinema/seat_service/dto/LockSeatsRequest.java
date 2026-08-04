@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,4 +18,7 @@ public class LockSeatsRequest {
 
     @NotEmpty(message = "seatIds list cannot be empty")
     private List<UUID> seatIds;
+
+    @NotEmpty(message = "totalPrice can not be empty")
+    private BigDecimal totalPrice;
 }
