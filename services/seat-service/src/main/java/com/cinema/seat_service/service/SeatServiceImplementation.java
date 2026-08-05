@@ -4,6 +4,7 @@ import com.cinema.seat_service.dto.*;
 import com.cinema.seat_service.entity.ReservationStatus;
 import com.cinema.seat_service.entity.Seat;
 import com.cinema.seat_service.entity.SeatReservation;
+import com.cinema.seat_service.event.SeatEvent;
 import com.cinema.seat_service.exception.SeatNotFoundException;
 import com.cinema.seat_service.exception.SeatNotHallException;
 import com.cinema.seat_service.exception.SeatNotShowTimeException;
@@ -13,10 +14,12 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 
@@ -28,15 +31,15 @@ public class SeatServiceImplementation implements SeatService {
     private final SeatReservationRepository seatReservationRepository;
     private final HallCacheRepository hallCacheRepository;
     private final ShowtimeCacheRepository showtimeCacheRepository;
+    private final SeatKafkaProducer seatKafkaProducer;
 
 
-    public SeatServiceImplementation(SeatRepository seatRepository, SeatReservationRepository seatReservationRepository, HallCacheRepository hallCacheRepository, ShowtimeCacheRepository showtimeCacheRepository) {
+    public SeatServiceImplementation(SeatRepository seatRepository, SeatReservationRepository seatReservationRepository, HallCacheRepository hallCacheRepository, ShowtimeCacheRepository showtimeCacheRepository, SeatKafkaProducer seatKafkaProducer) {
         this.seatRepository = seatRepository;
         this.seatReservationRepository = seatReservationRepository;
         this.hallCacheRepository = hallCacheRepository;
         this.showtimeCacheRepository = showtimeCacheRepository;
-
-
+        this.seatKafkaProducer = seatKafkaProducer;
     }
 
     @Override
@@ -189,6 +192,19 @@ public class SeatServiceImplementation implements SeatService {
 
         log.info("Successfully locked {} seats", lockedSeatIds.size());
 
+        CompletableFuture<SendResult<String, SeatEvent>> future = seatKafkaProducer.publish(
+                new SeatEvent(
+                        SeatEvent.EventType.SEAT_LOCKED,
+                        request.getShowtimeId(),
+                        request.getSeatIds().get(0),
+                        request.getUserId()));
+                  future.thenAccept(result->{
+                      log.info("Successfully published seat locked event for showtime {} and user {}", request.getShowtimeId(), request.getUserId());
+                  }).exceptionally(ex->{
+                      log.error("Failed to publish seat locked event for showtime {} and user {}", request.getShowtimeId(), request.getUserId(), ex);
+                      return null;
+                  });
+                  
         return lockedSeatIds;
     }
 
@@ -230,11 +246,27 @@ public class SeatServiceImplementation implements SeatService {
 
 
         }
+        CompletableFuture<SendResult<String, SeatEvent>> future = seatKafkaProducer.publish(
+                new SeatEvent(
+                        SeatEvent.EventType.SEAT_BOOKED,
+                        request.getShowtimeId(),
+                        request.getSeatIds().get(0),
+                        request.getUserId()));
+        seatReservationRepository.saveAll(reservations);
+
+        future.thenAccept(result->{
+            log.info("Successfully published seat booked event for showtime {} and user {}", request.getShowtimeId(), request.getUserId());
+
+        }).exceptionally(ex->{
+            log.error("Failed to publish seat booked event for showtime {} and user {}", request.getShowtimeId(), request.getUserId(), ex);
+            return null;
+        });
         seatReservationRepository.saveAll(reservations);
 
 
 
     }
+
 
 
 

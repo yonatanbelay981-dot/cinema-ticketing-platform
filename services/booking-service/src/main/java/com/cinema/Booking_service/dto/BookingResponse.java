@@ -23,4 +23,6 @@ public class BookingResponse {
     private BookingStatus status;
 
     private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
 }

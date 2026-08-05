@@ -54,6 +54,7 @@ public class SeatController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Seats locked successfully", lockedSeatIds));
     }
 
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteSeat(@PathVariable UUID id) {
         seatService.deleteSeatById(id);
