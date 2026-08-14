@@ -1,0 +1,12 @@
+package com.cinema.tiecket_service.event;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+public record PaymentProcessedEvent(
+        UUID paymentId,
+        UUID bookingId,
+        BigDecimal amount,
+        String status,
+        String transactionReference) {
+}
