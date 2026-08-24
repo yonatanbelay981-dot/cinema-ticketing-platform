@@ -3,17 +3,22 @@ package com.cinema.notification_service.service;
 import com.cinema.notification_service.client.UserServiceClient;
 import com.cinema.notification_service.dto.UserResponse;
 import com.cinema.notification_service.event.BookingConfirmedEvent;
+import com.cinema.notification_service.event.EmailNotificationMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 @Slf4j
 public class BookingConfirmedListener {
     private final UserServiceClient userServiceClient;
+    private final EmailNotificationProducer emailNotificationProducer;
 
-    public BookingConfirmedListener(UserServiceClient userServiceClient) {
+    public BookingConfirmedListener(UserServiceClient userServiceClient, EmailNotificationProducer emailNotificationProducer) {
         this.userServiceClient = userServiceClient;
+        this.emailNotificationProducer = emailNotificationProducer;
     }
 
     @KafkaListener(
@@ -33,5 +38,19 @@ public class BookingConfirmedListener {
                 user.email()
         );
 
+        EmailNotificationMessage message =
+                new EmailNotificationMessage(
+                        UUID.randomUUID(),
+                        user.id(),
+                        user.email(),
+                        "Booking Confirmed",
+                        "Your cinema booking has been confirmed."
+                );
+        emailNotificationProducer.sendEmailNotification(message);
+
+        log.info(
+                "Booking confirmation email queued. bookingId={}",
+                event.bookingId()
+        );
     }
 }
