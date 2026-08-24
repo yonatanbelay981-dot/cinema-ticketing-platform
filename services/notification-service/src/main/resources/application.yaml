@@ -16,3 +16,5 @@ spring:
     services:
       user-service:
         url: http://localhost:8081
+      booking-service:
+        url: http://localhost:8084

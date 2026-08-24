@@ -12,9 +12,10 @@ public class EmailService {
             String message
     ){
         log.info(
-                "Sending email. to={}, subject={}",
+                "Sending email. to={}, subject={}, message={}",
                 to,
-                subject
+                subject,
+                message
         );
         // Here you would implement the actual email sending logic using an email library or service.
 

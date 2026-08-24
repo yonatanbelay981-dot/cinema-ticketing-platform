@@ -1,6 +1,8 @@
 package com.cinema.notification_service.config;
 
+import com.cinema.notification_service.event.BookingCancelledEvent;
 import com.cinema.notification_service.event.BookingConfirmedEvent;
+import com.cinema.notification_service.event.PaymentProcessedEvent;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.context.annotation.Bean;
@@ -40,6 +42,40 @@ public class KafkaConsumerConfig {
     public ConcurrentKafkaListenerContainerFactory<String, BookingConfirmedEvent> bookingConfirmedEventKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, BookingConfirmedEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(bookingConfirmedEventConsumerFactory());
+        return factory;
+    }
+    @Bean
+    public ConsumerFactory<String , PaymentProcessedEvent>paymentProcessedEventConsumerFactory(){
+        JacksonJsonDeserializer<PaymentProcessedEvent> deserializer = new JacksonJsonDeserializer<>(PaymentProcessedEvent.class);
+        deserializer.trustedPackages("*");
+        deserializer.setUseTypeHeaders(false);
+        return new DefaultKafkaConsumerFactory<>(
+                consumerProperties("notification-service-group"),
+                new StringDeserializer(),
+                deserializer
+        );
+    }
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, PaymentProcessedEvent> paymentProcessedEventKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, PaymentProcessedEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(paymentProcessedEventConsumerFactory());
+        return factory;
+    }
+    @Bean
+    public ConsumerFactory<String , BookingCancelledEvent>bookingCancelledEventConsumerFactory(){
+        JacksonJsonDeserializer<BookingCancelledEvent> deserializer = new JacksonJsonDeserializer<>(BookingCancelledEvent.class);
+        deserializer.trustedPackages("*");
+        deserializer.setUseTypeHeaders(false);
+        return new DefaultKafkaConsumerFactory<>(
+                consumerProperties("notification-service-group"),
+                new StringDeserializer(),
+                deserializer
+        );
+    }
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, BookingCancelledEvent> bookingCancelledEventKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, BookingCancelledEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(bookingCancelledEventConsumerFactory());
         return factory;
     }
 }
