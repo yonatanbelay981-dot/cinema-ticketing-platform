@@ -12,3 +12,7 @@ spring:
       exchange: notification-exchange
       queue: notification-queue
       routing-key: notification-routing-key
+
+    services:
+      user-service:
+        url: http://localhost:8081
