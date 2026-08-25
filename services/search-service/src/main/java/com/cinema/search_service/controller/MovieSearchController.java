@@ -2,6 +2,7 @@ package com.cinema.search_service.controller;
 
 
 import com.cinema.search_service.document.MovieDocument;
+import com.cinema.search_service.entity.MovieStatus;
 import com.cinema.search_service.service.MovieSearchService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +25,12 @@ public class MovieSearchController {
 
     @GetMapping
     public Page<MovieDocument> searchMovies(
-            @RequestParam String query,
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String genre,
+            @RequestParam(required = false) String language,
+            @RequestParam(required = false) MovieStatus status,
+            @RequestParam(defaultValue = "relevance") String sortBy,
+            @RequestParam(defaultValue = "desc") String direction,
             @PageableDefault(
                     size = 10,
                     sort = "title",
@@ -32,7 +38,7 @@ public class MovieSearchController {
             ) Pageable pageable
     ) {
 
-        return movieSearchService.searchMovies(query, pageable);
+        return movieSearchService.searchMovies(query, genre ,language , status ,sortBy, direction, pageable);
     }
 }
 

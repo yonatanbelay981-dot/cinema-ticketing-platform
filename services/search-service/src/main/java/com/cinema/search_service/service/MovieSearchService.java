@@ -1,6 +1,8 @@
 package com.cinema.search_service.service;
 
+import co.elastic.clients.elasticsearch._types.SortOrder;
 import com.cinema.search_service.document.MovieDocument;
+import com.cinema.search_service.entity.MovieStatus;
 import com.cinema.search_service.repository.MovieSearchRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -117,19 +119,78 @@ public class MovieSearchService {
                 id
         );
     }
-    public Page<MovieDocument> searchMovies(String query , Pageable pageable){
-        log.info(
-                "Searching movies with query: '{}'",
-                query
+    public Page<MovieDocument> searchMovies(String query , String genre, String language, MovieStatus status, String sortBy , String direction, Pageable pageable){
+
+        log.info( "Searching movies - query: {}, genre: {}, language: {}, status: {}, sortBy: {}, direction: {}",
+                query,
+                genre,
+                language,
+                status,
+                sortBy,
+                direction
         );
+        String sortField = switch (sortBy == null ? "" : sortBy) {
+            case "title" -> "title.keyword";
+            case "duration" -> "duration";
+            case "releaseDate" -> "releaseDate";
+            case "createdAt" -> "createdAt";
+            default -> "title.keyword";
+        };
+        SortOrder sortOrder =
+                "desc".equalsIgnoreCase(direction)
+                        ? SortOrder.Desc
+                        : SortOrder.Asc;
+
+
         NativeQuery searchQuery = new NativeQueryBuilder()
                 .withQuery(q->q
-                        .multiMatch(m->m
-                                .query(query)
-                                .fields("title",
-                                            "genre",
-                                                    "language",
-                                                     "description"))).withPageable(pageable).build();
+                        .bool(b->{
+                            if (query!=null&& !query.isBlank()){
+                                b.must(m->m
+                                        .multiMatch(mm->mm
+                                                .query(query)
+                                                .fields("title^4",
+                                                        "genres^2",
+                                                               "description",
+                                                                "language"
+                                                )
+                                                .fuzziness("AUTO")
+                                        ));
+                            }else {
+                                b.must(
+                                        m->m
+                                                .multiMatch(ma->ma)
+                                );
+                            }
+                            if (genre!=null && !genre.isBlank()){
+                                b.filter(f->f
+                                        .term(t->t
+                                                .field("genres.keyword")
+                                                .value(genre)));
+                            }
+                            if (language!=null&& !language.isBlank()){
+                                b.filter(f->f
+                                        .term(t->t
+                                                .field("language.keyword")
+                                                .value(language))
+
+
+                                        );
+                            }
+                            if (status!=null){
+                                b.filter(f->f
+                                        .term(t->t
+                                                .field("status.keyword")
+                                                .value(status.name())));
+                            }
+                            return b;
+                        })
+                        ).withSort(s->s
+                        .field(f->f
+                                .field(sortField)
+                                .order(sortOrder))
+                        
+                        ).withPageable(pageable).build();
      SearchHits<MovieDocument> searchHit = elasticsearchOperations.search(
              searchQuery ,
              MovieDocument.class);
