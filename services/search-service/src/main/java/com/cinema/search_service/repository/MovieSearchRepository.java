@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface MovieSearchRepository extends ElasticsearchRepository<MovieDocument , UUID> {
 
+
 }
