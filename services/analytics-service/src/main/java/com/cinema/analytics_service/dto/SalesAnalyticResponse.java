@@ -5,18 +5,17 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookingStatisticsResponse {
+public class SalesAnalyticResponse {
 
-        private LocalDate date;
-        private Long totalBookings;
-        private Long confirmedBookings;
-        private Long failedBookings;
-        private Long cancelledBookings;
-
+    private LocalDate date;
+    private BigDecimal totalRevenue;
+    private Long totalTicketsSold;
+    private Long totalBookings;
 }
