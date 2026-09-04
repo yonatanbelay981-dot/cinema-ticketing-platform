@@ -32,7 +32,7 @@ public class PaymentProcessedListener {
     }
 
     @KafkaListener(
-            topics = "payment-processed-topic",
+            topics = "payment-events",
             groupId = "concession-service",
             containerFactory = "paymentProcessedKafkaListenerContainerFactory"
     )
@@ -44,7 +44,7 @@ public class PaymentProcessedListener {
         log.info(
                 "Received PAYMENT_PROCESSED for booking {} with status {}",
                 event.bookingId(),
-                event.paymentStatus()
+                event.status()
         );
 
         List<FoodOrder> orders =
@@ -73,7 +73,7 @@ public class PaymentProcessedListener {
                 continue;
             }
 
-            if (event.paymentStatus() == PaymentStatus.SUCCESS) {
+            if (event.status() == PaymentStatus.SUCCESS) {
 
                 foodOrderService.updateFoodOrderStatus(
                         order.getId(),
@@ -85,7 +85,7 @@ public class PaymentProcessedListener {
                         order.getId()
                 );
 
-            } else if (event.paymentStatus() == PaymentStatus.FAILED) {
+            } else if (event.status() == PaymentStatus.FAILED) {
 
                 foodOrderService.cancelFoodOrder(
                         order.getId()

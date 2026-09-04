@@ -7,6 +7,7 @@ import com.cinema.concession_service.service.FoodItemService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,26 +19,31 @@ public class FoodItemController {
 
     private final FoodItemService foodItemService;
 
-    public FoodItemController(
-            FoodItemService foodItemService
-    ) {
+    public FoodItemController(FoodItemService foodItemService) {
         this.foodItemService = foodItemService;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<ApiResponse<FoodItemResponse>> createFoodItem(
             @Valid @RequestBody CreateFoodItemRequest request
     ) {
 
-      FoodItemResponse foodItem  =  foodItemService.createFoodItem(request);
-      return ResponseEntity.status(HttpStatus.CREATED).body(
-              new ApiResponse<>(true,
-                      "Food item created successfully",
-                      foodItem)
-      );
+        FoodItemResponse foodItem =
+                foodItemService.createFoodItem(request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(
+                        new ApiResponse<>(
+                                true,
+                                "Food item created successfully",
+                                foodItem
+                        )
+                );
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping
     public ResponseEntity<ApiResponse<List<FoodItemResponse>>> getAllFoodItems() {
 
@@ -50,6 +56,7 @@ public class FoodItemController {
         );
     }
 
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<FoodItemResponse>> getFoodItemById(
             @PathVariable UUID id
@@ -64,6 +71,7 @@ public class FoodItemController {
         );
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<FoodItemResponse>> updateFoodItem(
             @PathVariable UUID id,
@@ -79,13 +87,14 @@ public class FoodItemController {
         );
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<ApiResponse<Void>> deleteFoodItem(
             @PathVariable UUID id
     ) {
 
         foodItemService.deleteFoodItem(id);
+
         return ResponseEntity.ok(
                 new ApiResponse<>(
                         true,

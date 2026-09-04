@@ -25,8 +25,7 @@ import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
-public class FoodOrderServiceImplementation
-        implements FoodOrderService {
+public class FoodOrderServiceImplementation implements FoodOrderService {
 
     private final FoodOrderRepository foodOrderRepository;
     private final FoodItemRepository foodItemRepository;
@@ -44,6 +43,7 @@ public class FoodOrderServiceImplementation
     @Override
     @Transactional
     public FoodOrderResponse createFoodOrder(
+            UUID userId,
             CreateFoodOrderRequest request
     ) {
 
@@ -55,7 +55,7 @@ public class FoodOrderServiceImplementation
         FoodOrder foodOrder = new FoodOrder();
 
         foodOrder.setBookingId(request.bookingId());
-        foodOrder.setUserId(request.userId());
+        foodOrder.setUserId(userId);
         foodOrder.setStatus(FoodOrderStatus.PENDING);
         foodOrder.setTotalPrice(BigDecimal.ZERO);
 

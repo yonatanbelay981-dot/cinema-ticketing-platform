@@ -12,6 +12,7 @@ import java.util.UUID;
 public interface FoodOrderService {
 
     FoodOrderResponse createFoodOrder(
+            UUID userId,
             CreateFoodOrderRequest request
     );
 

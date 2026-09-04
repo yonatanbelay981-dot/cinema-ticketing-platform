@@ -11,8 +11,6 @@ public record CreateFoodOrderRequest(
         @NotNull
         UUID bookingId,
 
-        @NotNull
-        UUID userId,
 
         @NotEmpty
         List<@Valid FoodOrderItemRequest> items
