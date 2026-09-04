@@ -9,6 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 
 @Entity
@@ -22,20 +23,16 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class User {
     @Id
-    @SequenceGenerator(
 
-            name = "user_sequence"  ,
-            sequenceName = "user_sequence",
-            allocationSize = 1
-
-    )
     @GeneratedValue(
 
-                   strategy = GenerationType.SEQUENCE ,
+                   strategy = GenerationType.UUID
 
-                   generator = "user_sequence"
+
     )
-    private Long id;
+    private UUID id;
+    @Column(nullable = false, unique = true)
+    private String keycloakUserId;
 
     @Column(nullable = false)
     private String firstName;

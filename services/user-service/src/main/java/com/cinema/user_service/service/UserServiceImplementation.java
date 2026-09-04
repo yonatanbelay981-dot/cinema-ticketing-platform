@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Pageable;
 
+import java.util.UUID;
+
 @Service
 @Slf4j
 public class UserServiceImplementation implements UserService {
@@ -32,7 +34,7 @@ public class UserServiceImplementation implements UserService {
     }
 
     @Override
-    public UserResponse getById(Long id) {
+    public UserResponse getById(UUID id) {
         log.info("Fetching user with id {}"  , id);
         User user = userRepository.findById(id).orElseThrow(()->{ log.warn("User with id {} not found", id);
             return new UserNotFoundException("user  not found with id " +  id);});
@@ -40,13 +42,14 @@ public class UserServiceImplementation implements UserService {
     }
 
     @Override
-    public UserResponse createUser(CreateUserRequest request) {
-        log.info("Creating user with email {}"  , request.getEmail());
+    public UserResponse createUser(String keycloakUserId , String email ,  CreateUserRequest request) {
+        log.info("Creating user with email {}"  , email);
         User user = new User();
 
         user.setFirstName(request.getFirstName());
+        user.setKeycloakUserId(keycloakUserId);
         user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
+        user.setEmail(email);
         user.setPhoneNumber(request.getPhoneNumber());
         user.setDateOfBirth(request.getDateOfBirth());
 
@@ -57,9 +60,40 @@ public class UserServiceImplementation implements UserService {
 
         return mapToResponse(savedUser);
     }
+    @Override
+    public UserResponse getByKeycloakId(String keycloakUserId) {
+
+        User user = userRepository
+                .findByKeycloakUserId(keycloakUserId)
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User profile not found"
+                        )
+                );
+
+        return mapToResponse(user);
+    }
 
     @Override
-    public UserResponse updateUserById(Long id, UpdateUserRequest request) {
+    public UserResponse updateMyProfile(String keycloakUserId, UpdateUserRequest request) {
+        log.info("Updating user with keycloakUserId {}", keycloakUserId);
+        User user = userRepository.findByKeycloakUserId(keycloakUserId).orElseThrow(()->{ log.warn("User not found with keycloakUserId  {}", keycloakUserId);
+            return new UserNotFoundException("user not found with id : " + keycloakUserId);});
+
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setDateOfBirth(request.getDateOfBirth());
+        user.setProfileImage(request.getProfileImage());
+
+        User updatedUser = userRepository.save(user);
+        log.info("user updated successfully with keycloakUserId {}" ,  keycloakUserId);
+        return mapToResponse(updatedUser) ;
+
+    }
+
+    @Override
+    public UserResponse updateUserById(UUID id, UpdateUserRequest request) {
         log.info("Updating user with id {}", id);
         User user = userRepository.findById(id).orElseThrow(()->{ log.warn("User not found with id  {}", id);
             return new UserNotFoundException("user not found with id : " + id);});
@@ -69,7 +103,7 @@ public class UserServiceImplementation implements UserService {
         user.setPhoneNumber(request.getPhoneNumber());
         user.setDateOfBirth(request.getDateOfBirth());
         user.setProfileImage(request.getProfileImage());
-        user.setEmail(request.getEmail());
+
 
         User updatedUser = userRepository.save(user);
         log.info("user updated successfully with id {}" ,  updatedUser.getId());
@@ -89,7 +123,7 @@ public class UserServiceImplementation implements UserService {
     }
 
     @Override
-    public void deleteUserById(Long id) {
+    public void deleteUserById(UUID id) {
         log.info("Deleting user with id {}", id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {

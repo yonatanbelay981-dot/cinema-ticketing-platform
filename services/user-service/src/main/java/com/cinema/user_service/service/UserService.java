@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface UserService {
 
@@ -14,15 +15,15 @@ public interface UserService {
             Pageable pageable
     );
 
-    UserResponse getById(Long id);
+    UserResponse getById(UUID id);
 
-    UserResponse createUser(CreateUserRequest request);
+    UserResponse createUser(String keyClockId ,  String email ,  CreateUserRequest request);
 
-    UserResponse updateUserById(Long id, UpdateUserRequest request);
+    UserResponse updateUserById(UUID id, UpdateUserRequest request);
 
     UserResponse findUserByEmail(String email);
 
-    void deleteUserById(Long id);
+    void deleteUserById(UUID id);
 
     Page<UserResponse> searchByFirstName(
             String firstName,
@@ -38,4 +39,6 @@ public interface UserService {
             String email,
             Pageable pageable
     );
+    UserResponse getByKeycloakId(String  keycloakUserId);
+    UserResponse updateMyProfile(String keycloakUserId, UpdateUserRequest request);
 }
