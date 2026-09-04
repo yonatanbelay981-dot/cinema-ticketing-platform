@@ -2,19 +2,10 @@ spring:
   application:
     name: notification-service
 
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
-  app:
-    rabbitmq:
-      exchange: notification-exchange
-      queue: notification-queue
-      routing-key: notification-routing-key
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
-    services:
-      user-service:
-        url: http://localhost:8081
-      booking-service:
-        url: http://localhost:8084
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}

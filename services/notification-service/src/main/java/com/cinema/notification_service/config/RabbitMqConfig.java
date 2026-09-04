@@ -27,7 +27,27 @@ public class RabbitMqConfig {
                 .build();
     }
     @Bean
-    public Binding emailNotficationBinding(Queue emailNoficationQueue , DirectExchange notificationExchange){
+    public DirectExchange notificationExchangeDlx(){
+        return new DirectExchange(exchange + ".dlx");
+    }
+    @Bean
+    public Queue emailNotificationQueueDlq(){
+        return  QueueBuilder.durable(
+                emailQueue + ".dlq"
+        ).build();
+    }
+
+    @Bean
+    public Binding emailNotificationBindingDlq(Queue emailNotificationQueueDlq  , DirectExchange notificationExchangeDlx ){
+        return BindingBuilder.bind(emailNotificationQueueDlq)
+                .to(notificationExchangeDlx)
+                .with(routingKey +   ".dead");
+
+
+    }
+
+    @Bean
+    public Binding emailNotificationBinding(Queue emailNoficationQueue , DirectExchange notificationExchange){
         return BindingBuilder
                 .bind(emailNoficationQueue)
                 .to(notificationExchange)
