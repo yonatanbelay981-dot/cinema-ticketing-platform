@@ -22,7 +22,7 @@ import java.util.UUID;
 @Table(name = "bookings" ,
        indexes = {
         @Index(name = "idx_booking_showtime_id", columnList = "showtimeId"),
-        @Index(name = "idx_booking_user_id", columnList = "userId")
+        @Index(name = "idx_booking_user_id", columnList = "keycloakUserId")
 })
 
 public class Booking {
@@ -31,8 +31,9 @@ public class Booking {
     private UUID id;
     @Column(nullable = false)
     private UUID showtimeId;
+    private UUID movieId;
     @Column(nullable = false)
-    private UUID userId;
+    private String keycloakUserId;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BookingStatus status;
@@ -40,6 +41,9 @@ public class Booking {
 
     private BigDecimal totalPrice;
     private String promotionCode;
+
+    @Column(nullable = false)
+    private String paymentMethod;
 
     @OneToMany(mappedBy = "booking" ,  cascade = CascadeType.ALL)
     private List<BookingSeat> bookingSeats =  new ArrayList<>();

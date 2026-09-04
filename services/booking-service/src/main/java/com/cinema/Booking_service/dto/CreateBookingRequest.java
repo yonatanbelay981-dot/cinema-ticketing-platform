@@ -11,11 +11,19 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateBookingRequest {
-   @NotNull(message = "User ID is required")
-    private UUID userId;
+
    @NotNull(message = "Showtime ID is required")
     private UUID showtimeId;
    @NotNull(message = "Seat IDs are required")
     private List<UUID> seatIds;
     private String promotionCode;
+
+    @NotNull
+    private String paymentMethod;
+
+    public CreateBookingRequest(UUID showTimeId, UUID seatId, String paymentMethod) {
+        this.showtimeId = showTimeId;
+        this.seatIds = List.of(seatId);
+        this.paymentMethod = paymentMethod;
+    }
 }

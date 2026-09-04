@@ -12,13 +12,14 @@ import java.util.UUID;
 
 public interface BookingService {
     Page<BookingResponse>getAllBooking(Pageable pageable);
-    BookingResponse getBookingById(UUID id);
-    BookingResponse createBooking(CreateBookingRequest request);
+    BookingResponse getBookingById(UUID id , String keycloakUserId);
+    BookingResponse createBooking(CreateBookingRequest request , String keycloakUserId);
     void deleteBookingById(UUID id);
-    Page<BookingResponse>searchBookingByUserId(UUID userId , Pageable pageable);
+    Page<BookingResponse>searchBookingByUserId(String keycloakUserId , Pageable pageable);
     Page<BookingResponse>searchByShowTimeId(UUID showTimeId  , Pageable pageable);
     Page<BookingResponse>searchByStatus(BookingStatus status  , Pageable pageable);
-    Page<BookingResponse>searchByUserIdAndStatus(UUID user_Id  , BookingStatus status  , Pageable pageable );
-    Optional<BookingResponse> getByIdAndUserId(UUID id , UUID user_id);
+    Page<BookingResponse>searchByUserIdAndStatus(String keycloakUserId  , BookingStatus status  , Pageable pageable );
+    Optional<BookingResponse> getByIdAndUserId(UUID id , String keycloakUserId);
+    void cancelBooking(UUID bookingId  , String keycloakUserId);
 
 }

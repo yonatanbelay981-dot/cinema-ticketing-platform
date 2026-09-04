@@ -12,7 +12,7 @@ public class BookingResponse {
 
     private UUID id;
 
-    private UUID userId;
+    private String keycloakUserId;
 
     private UUID showtimeId;
 
