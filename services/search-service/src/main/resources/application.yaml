@@ -1,9 +1,11 @@
 spring:
   application:
     name: search-service
-  elastic-search:
-    uris: http://localhost:9200
-  eureka:
-    client:
-      serviceUrl:
-        defaultZone:  http://localhost:8761/eureka/
+
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
