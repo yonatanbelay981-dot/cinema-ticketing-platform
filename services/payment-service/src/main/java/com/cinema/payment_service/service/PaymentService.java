@@ -12,13 +12,16 @@ import java.util.UUID;
 
 public interface PaymentService {
     Page<PaymentResponse>getAllPayments(Pageable pageable);
-    PaymentResponse getPaymentById(UUID id);
+    PaymentResponse getPaymentById(UUID id , String keycloakUserId);
     Page<PaymentResponse> getPaymentsByBookingId(
             UUID bookingId,
+            String keycloakUserId,
             Pageable pageable
     );
     void deletePaymentById(UUID id);
     void processPayment(UUID paymentId);
 
     Payment createPaymentFromBooking(BookingPaymentRequestedEvent event);
+
+    Page<PaymentResponse> getPayments(String keycloakUserId , Pageable pageable);
 }

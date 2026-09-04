@@ -8,6 +8,7 @@ import java.util.UUID;
 public record PaymentProcessedEvent(
         UUID paymentId,
         UUID bookingId,
+        String keycloakUserId,
         BigDecimal amount,
         PaymentStatus status,
         String transactionReference

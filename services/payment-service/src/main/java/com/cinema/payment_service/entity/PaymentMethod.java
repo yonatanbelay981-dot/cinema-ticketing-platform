@@ -4,7 +4,8 @@ public enum PaymentMethod {
 
         TELEBIRR,
         BANK_TRANSFER,
-        CREDIT_CARD,
-        DEBIT_CARD
+        CARD,
+        DEBIT_CARD,
+
 
 }

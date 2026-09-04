@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface PaymentRepository extends JpaRepository<Payment , UUID> {
-    Page<Payment> findByBookingId(UUID bookingId , Pageable pageable);
+    Page<Payment> findByBookingIdAndKeycloakUserId(UUID bookingId , String keycloakUserId, Pageable pageable);
     Optional<Payment> findFirstByBookingIdOrderByPaymentAttemptDesc(
             UUID bookingId
     );
@@ -19,7 +19,9 @@ public interface PaymentRepository extends JpaRepository<Payment , UUID> {
             UUID bookingId,
             PaymentStatus paymentStatus
     );
-    Optional<Payment> findByPaymentRequestEventId(UUID eventId);
+    Optional<Payment> findByPaymentRequestEventId(UUID paymentRequestEventId);
+    Optional<Payment>findByIdAndKeycloakUserId(UUID id , String keycloakUserId);
+    Page<Payment> findByKeycloakUserId(String keycloakUserId , Pageable pageable);
 
 
 

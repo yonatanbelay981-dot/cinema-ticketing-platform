@@ -43,11 +43,11 @@ public class PaymentServiceImplementation implements PaymentService {
     }
 
     @Override
-    public PaymentResponse getPaymentById(UUID id) {
+    public PaymentResponse getPaymentById(UUID id ,  String keycloakUserId) {
 
         log.info("Fetching payment with id {}", id);
 
-        Payment payment = paymentRepository.findById(id)
+        Payment payment = paymentRepository.findByIdAndKeycloakUserId(id, keycloakUserId)
                 .orElseThrow(() -> {
                     log.warn("Payment with id {} was not found", id);
                     return new PaymentNotFoundException(
@@ -65,6 +65,7 @@ public class PaymentServiceImplementation implements PaymentService {
     @Override
     public Page<PaymentResponse> getPaymentsByBookingId(
             UUID bookingId,
+            String keycloakUserId,
             Pageable pageable
     ) {
 
@@ -74,8 +75,9 @@ public class PaymentServiceImplementation implements PaymentService {
         );
 
         Page<Payment> payments =
-                paymentRepository.findByBookingId(
+                paymentRepository.findByBookingIdAndKeycloakUserId(
                         bookingId,
+                        keycloakUserId,
                         pageable
                 );
 
@@ -173,6 +175,7 @@ public class PaymentServiceImplementation implements PaymentService {
                 new PaymentProcessedEvent(
                         payment.getId(),
                         payment.getBookingId(),
+                        payment.getKeycloakUserId(),
                         payment.getAmount(),
                         payment.getPaymentStatus(),
                         payment.getTransactionReference()
@@ -201,6 +204,7 @@ public class PaymentServiceImplementation implements PaymentService {
         });
     }
 
+
     @Override
     public Payment createPaymentFromBooking(BookingPaymentRequestedEvent event) {
 
@@ -209,22 +213,24 @@ public class PaymentServiceImplementation implements PaymentService {
                 event.bookingId()
         );
 
+        // 1. Idempotency check
         Optional<Payment> existingPayment =
                 paymentRepository.findByPaymentRequestEventId(
-                        event.eventId()
+                        event.paymentRequestEventId()
                 );
 
         if (existingPayment.isPresent()) {
 
             log.info(
                     "Duplicate payment request event {} received for booking {}",
-                    event.eventId(),
+                    event.paymentRequestEventId(),
                     event.bookingId()
             );
 
             return existingPayment.get();
         }
 
+        // 2. Prevent another successful payment for the same booking
         Optional<Payment> successfulPayment =
                 paymentRepository.findByBookingIdAndPaymentStatus(
                         event.bookingId(),
@@ -241,32 +247,88 @@ public class PaymentServiceImplementation implements PaymentService {
 
             return successfulPayment.get();
         }
-        int nextAttempt = paymentRepository.findFirstByBookingIdOrderByPaymentAttemptDesc(
-                event.bookingId()
-        ).map(payment -> payment.getPaymentAttempt() + 1).orElse(1);
 
+        // 3. Determine the next payment attempt
+        int nextAttempt =
+                paymentRepository
+                        .findFirstByBookingIdOrderByPaymentAttemptDesc(
+                                event.bookingId()
+                        )
+                        .map(payment ->
+                                payment.getPaymentAttempt() + 1
+                        )
+                        .orElse(1);
 
-            Payment payment = new Payment();
+        // 4. Create payment
+        Payment payment = new Payment();
+
         payment.setPaymentAttempt(nextAttempt);
-        payment.setBookingId(event.bookingId());
-        payment.setPaymentRequestEventId(event.eventId());
-        payment.setAmount(event.totalPrice());
-        payment.setTransactionReference("pay-" + UUID.randomUUID());
-        payment.setPaymentMethod(
-                PaymentMethod.valueOf(event.paymentMethod())
-        );
-        payment.setPaymentStatus(PaymentStatus.PENDING);
 
+        payment.setBookingId(
+                event.bookingId()
+        );
+
+        payment.setPaymentRequestEventId(
+                event.paymentRequestEventId()
+        );
+
+        payment.setKeycloakUserId(
+                event.keycloakUserId()
+        );
+
+        payment.setAmount(
+                event.totalPrice()
+        );
+
+        payment.setTransactionReference(
+                "pay-" + UUID.randomUUID()
+        );
+
+        payment.setPaymentMethod(
+                PaymentMethod.valueOf(
+                        event.paymentMethod()
+                )
+        );
+
+        payment.setPaymentStatus(
+                PaymentStatus.PENDING
+        );
+
+        // 5. Save payment
         Payment savedPayment =
                 paymentRepository.save(payment);
 
         log.info(
-                "Payment {} created for booking {}",
+                "Payment {} created for booking {} with attempt {}",
                 savedPayment.getId(),
-                savedPayment.getBookingId()
+                savedPayment.getBookingId(),
+                savedPayment.getPaymentAttempt()
         );
 
         return savedPayment;
+    }
+
+    @Override
+    public Page<PaymentResponse> getPayments(String keycloakUserId , Pageable pageable) {
+
+        log.info(
+                "Fetching payments for user {}",
+                keycloakUserId
+        );
+
+        Page<Payment> payments =
+                paymentRepository.findByKeycloakUserId(
+                        keycloakUserId,
+                        pageable
+                );
+
+        log.info(
+                "Successfully fetched {} payments for user {}",
+                payments.getNumberOfElements(),
+                keycloakUserId
+        );
+
+        return payments.map(this::mapToPaymentResponse);
     }
 
     private PaymentResponse mapToPaymentResponse(Payment payment) {

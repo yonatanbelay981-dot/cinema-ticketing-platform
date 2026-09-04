@@ -15,27 +15,33 @@ public class PaymentBookingListener {
         this.paymentService = paymentService;
     }
 
-    @KafkaListener(topics = "booking-events",
-    groupId = "payment-service")
-    public void handleBookingPaymentRequested( BookingPaymentRequestedEvent event){
-
-
+    @KafkaListener(
+            topics = "booking-payment-topic",
+            groupId = "payment-service",
+            containerFactory = "paymentKafkaListenerContainerFactory"
+    )
+    public void handleBookingPaymentRequested (
+            BookingPaymentRequestedEvent event
+    ) throws InterruptedException {
 
         log.info(
-                "Received payment request for booking {}",
-                event.bookingId()
+                "Received payment request: eventId={}, bookingId={}, userId={}, amount={}, method={}",
+                event.paymentRequestEventId(),
+                event.bookingId(),
+                event.keycloakUserId(),
+                event.totalPrice(),
+                event.paymentMethod()
         );
-       Payment payment =  paymentService.createPaymentFromBooking(event);
 
-       paymentService.processPayment(payment.getId());
+        Payment payment =
+                paymentService.createPaymentFromBooking(event);
 
+
+        paymentService.processPayment(payment.getId());
 
         log.info(
                 "Payment processing completed for booking {}",
                 event.bookingId()
         );
-
-
     }
-
 }

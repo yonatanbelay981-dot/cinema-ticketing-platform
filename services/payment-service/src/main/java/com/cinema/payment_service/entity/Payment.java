@@ -22,8 +22,13 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+
+
     @Column(nullable = false)
     private UUID bookingId;
+
+    @Column(nullable = false)
+    private String keycloakUserId;
 
     @Column(nullable = false)
     private Integer paymentAttempt;

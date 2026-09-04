@@ -12,6 +12,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -27,8 +30,8 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
-
-    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin")
     public ResponseEntity<ApiResponse<Page<PaymentResponse>>> getAllPayments(
             @PageableDefault(size = 10) Pageable pageable
     ) {
@@ -48,18 +51,46 @@ public class PaymentController {
     }
 
 
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<Page<PaymentResponse>>> getPayments(
+            @AuthenticationPrincipal Jwt jwt,
+            @PageableDefault(size = 10) Pageable pageable
+    ) {
+
+        log.info(
+                "Request received to fetch payment with keycloakUserId {}",
+                jwt.getSubject()
+        );
+        String keycloakUserId =  jwt.getSubject();
+
+        Page<PaymentResponse> payments =
+                paymentService.getPayments(keycloakUserId , pageable);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Payment fetched successfully",
+                        payments
+                )
+        );
+    }
+
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentById(
-            @PathVariable UUID id
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt
+
     ) {
 
         log.info(
                 "Request received to fetch payment with id {}",
                 id
         );
+        String keycloakUserId =  jwt.getSubject();
 
         PaymentResponse payment =
-                paymentService.getPaymentById(id);
+                paymentService.getPaymentById(id , keycloakUserId);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
@@ -71,44 +102,30 @@ public class PaymentController {
     }
 
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(
-            @Valid @RequestBody CreatePaymentRequest request
-    ) {
 
-        log.info(
-                "Request received to create payment for booking {}",
-                request.getBookingId()
-        );
 
-        PaymentResponse payment =
-                paymentService.createPayment(request);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(
-                        new ApiResponse<>(
-                                true,
-                                "Payment created successfully",
-                                payment
-                        )
-                );
-    }
+
 
     @GetMapping("/booking/{bookingId}")
     public ResponseEntity<ApiResponse<Page<PaymentResponse>>> getPaymentsByBookingId(
             @PathVariable UUID bookingId,
-            @PageableDefault(size = 10) Pageable pageable
+            @PageableDefault(size = 10) Pageable pageable,
+            @AuthenticationPrincipal Jwt jwt
+
     ) {
 
         log.info(
                 "Request received to fetch payments for booking {}",
                 bookingId
         );
+        String keycloakUserId = jwt.getSubject();
 
         Page<PaymentResponse> payments =
                 paymentService.getPaymentsByBookingId(
                         bookingId,
+                        keycloakUserId,
+
                         pageable
                 );
 
@@ -120,8 +137,8 @@ public class PaymentController {
                 )
         );
     }
-
-    @DeleteMapping("/{id}")
+@PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/admin/{id}")
     public ResponseEntity<Void> deletePaymentById(
             @PathVariable UUID id
     ) {
