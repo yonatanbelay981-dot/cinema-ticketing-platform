@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -39,6 +40,7 @@ public class ShowTimeController {
         );
 
     }
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<ShowtimeResponse>> createShowTime( @Valid @RequestBody CreateShowtimeRequest request){
         ShowtimeResponse response   = showTimeService.createShowTime(request);
@@ -50,41 +52,6 @@ public class ShowTimeController {
                 )
         );
     }
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ShowtimeResponse>> getShowTimeById(@PathVariable UUID id){
-        ShowtimeResponse response = showTimeService.getShowTimeById(id);
-        return ResponseEntity.ok(
-                new ApiResponse<>(
-                        true,
-                        "fetching showTime is successful",
-                        response
-                )
-        );
-    }
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<ShowtimeResponse>> updateShowTime(@PathVariable UUID id, @Valid @RequestBody UpdateShowtimeRequest request){
-        ShowtimeResponse response = showTimeService.updateShowTime(id, request);
-        return ResponseEntity.ok(
-                new ApiResponse<>(
-                        true,
-                        "updating showTime is successful",
-                        response
-                )
-        );
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteShowTime(@PathVariable UUID id){
-        showTimeService.deleteShowTimeById(id);
-        return ResponseEntity.ok(
-                new ApiResponse<>(
-                        true,
-                        "deleting showTime is successful",
-                        null
-                )
-        );
-    }
-
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<Page<ShowtimeResponse>>> searchShowTimes(
             @RequestParam(required = false) UUID movieId,
@@ -121,4 +88,43 @@ public class ShowTimeController {
                 )
         );
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<ShowtimeResponse>> getShowTimeById(@PathVariable UUID id){
+        ShowtimeResponse response = showTimeService.getShowTimeById(id);
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "fetching showTime is successful",
+                        response
+                )
+        );
+    }
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<ShowtimeResponse>> updateShowTime(@PathVariable UUID id, @Valid @RequestBody UpdateShowtimeRequest request){
+        ShowtimeResponse response = showTimeService.updateShowTime(id, request);
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "updating showTime is successful",
+                        response
+                )
+        );
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteShowTime(@PathVariable UUID id){
+        showTimeService.deleteShowTimeById(id);
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "deleting showTime is successful",
+                        null
+                )
+        );
+    }
+
+
 }

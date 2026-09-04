@@ -27,7 +27,12 @@ public class KafkaProducerService {
                 log.info("published {} event for {} showtime at {} offset" , event.getEventType() , event.getShowtimeId() , result.getRecordMetadata().offset());
             }
             else{
-                log.warn("failed publishing {} event for {} showtime" , event.getEventType() , event.getShowtimeId() , ex);
+                log.error(
+                        "Failed publishing {} event for showtime {}",
+                        event.getEventType(),
+                        event.getShowtimeId(),
+                        ex
+                );
 
             }
         });

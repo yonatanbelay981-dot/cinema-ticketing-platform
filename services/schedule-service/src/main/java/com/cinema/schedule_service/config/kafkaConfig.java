@@ -13,6 +13,7 @@ public class kafkaConfig {
     @Value("${app.kafka.topic.schedule-events}")
     private String scheduleEvents;
 
+
     @Bean
     public NewTopic scheduleEventsTopic() {
         return TopicBuilder.name(scheduleEvents).

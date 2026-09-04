@@ -2,10 +2,14 @@ package com.cinema.schedule_service.service;
 
 import com.cinema.schedule_service.entity.HallCache;
 import com.cinema.schedule_service.entity.MovieCache;
+import com.cinema.schedule_service.entity.ShowTime;
 import com.cinema.schedule_service.event.HallEvents;
 import com.cinema.schedule_service.event.MovieEvent;
+import com.cinema.schedule_service.event.ShowtimePriceRequestedEvent;
+import com.cinema.schedule_service.event.ShowtimePriceResponseEvent;
 import com.cinema.schedule_service.repository.HallCacheRepository;
 import com.cinema.schedule_service.repository.MovieCacheRepository;
+import com.cinema.schedule_service.repository.ShowTimeRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -19,21 +23,35 @@ public class ScheduleEventListener {
 
     private final MovieCacheRepository movieCacheRepository;
     private final HallCacheRepository hallCacheRepository;
+    private final ShowTimeRepository showtimeRepository;
+    private final ShowtimePriceKafkaProducer showtimePriceKafkaProducer;
 
-    public ScheduleEventListener(MovieCacheRepository movieCacheRepository, HallCacheRepository hallCacheRepository) {
+    public ScheduleEventListener(
+            MovieCacheRepository movieCacheRepository,
+            HallCacheRepository hallCacheRepository,
+            ShowTimeRepository showtimeRepository,
+            ShowtimePriceKafkaProducer showtimePriceKafkaProducer
+    ) {
         this.movieCacheRepository = movieCacheRepository;
         this.hallCacheRepository = hallCacheRepository;
+        this.showtimeRepository = showtimeRepository;
+        this.showtimePriceKafkaProducer = showtimePriceKafkaProducer;
     }
+
 
     @KafkaListener(
             topics = "movie-events",
-            groupId = "${spring.kafka.consumer.group-id}"
+            groupId = "${spring.kafka.consumer.group-id}",
+            containerFactory = "movieKafkaListenerContainerFactory"
     )
-    public void listenMovieEvents(MovieEvent event, Acknowledgment ack) {
+    public void listenMovieEvents(
+            MovieEvent event,
+            Acknowledgment ack
+    ) {
 
         try {
 
-            switch (event.getEventType() ) {
+            switch (event.getEventType()) {
 
                 case MOVIE_CREATED:
                 case MOVIE_UPDATED:
@@ -45,7 +63,10 @@ public class ScheduleEventListener {
                     break;
 
                 default:
-                    log.warn("Unknown movie event type: {}", event.getEventType());
+                    log.warn(
+                            "Unknown movie event type: {}",
+                            event.getEventType()
+                    );
             }
 
             ack.acknowledge();
@@ -59,33 +80,48 @@ public class ScheduleEventListener {
             );
         }
     }
+
+
     @KafkaListener(
-            topics = "hall-events",
-            groupId = "${spring.kafka.consumer.group-id}"
+            topics = "hall-availability-events",
+            groupId = "${spring.kafka.consumer.group-id}",
+            containerFactory = "hallKafkaListenerContainerFactory"
     )
-    public void listenHallEvent(HallEvents events ,  Acknowledgment ack){
+    public void listenHallEvent(
+            HallEvents event,
+            Acknowledgment ack
+    ) {
+
         try {
-            switch (events.getEventType()){
+
+            switch (event.getEventType()) {
+
                 case HALL_CREATED:
                 case HALL_UPDATED:
-                    upsertHall(events);
+                    upsertHall(event);
                     break;
+
                 case HALL_DELETED:
-                    deleteHall(events.getHallId());
+                    deleteHall(event.getHallId());
                     break;
+
                 default:
-                    log.warn("Unknown hall event type: {}", events.getEventType());
+                    log.warn(
+                            "Unknown hall event type: {}",
+                            event.getEventType()
+                    );
             }
+
             ack.acknowledge();
 
-        } catch (Exception e) {
+        } catch (Exception ex) {
+
             log.error(
                     "Failed processing hall event {}",
-                    events.getHallId(),
-                    e
+                    event.getHallId(),
+                    ex
             );
         }
-
     }
 
     private void upsertMovie(MovieEvent event) {
@@ -127,31 +163,182 @@ public class ScheduleEventListener {
             );
         }
     }
-    private void upsertHall(HallEvents events) {
 
-        HallCache hall = hallCacheRepository
-                .findById(events.getHallId())
-                .orElseGet(HallCache::new);
 
-        hall.setHallId(events.getHallId());
-        hall.setName(events.getName());
-        hall.setCapacity(events.getCapacity());
+    private void upsertHall(HallEvents event) {
+
+        HallCache hall =
+                hallCacheRepository
+                        .findById(event.getHallId())
+                        .orElseGet(HallCache::new);
+
+        hall.setHallId(event.getHallId());
+        hall.setName(event.getName());
+        hall.setCapacity(event.getCapacity());
 
         hallCacheRepository.save(hall);
 
         log.info(
                 "Hall cache synchronized successfully. Event={}, Hall={}",
-                events.getEventType(),
-                events.getHallId()
+                event.getEventType(),
+                event.getHallId()
         );
     }
 
     private void deleteHall(UUID hallId) {
+
         if (hallCacheRepository.existsById(hallId)) {
+
             hallCacheRepository.deleteById(hallId);
-            log.info("Hall {} removed from local cache", hallId);
+
+            log.info(
+                    "Hall {} removed from local cache",
+                    hallId
+            );
+
         } else {
-            log.warn("Hall {} not found in local cache", hallId);
+
+            log.warn(
+                    "Hall {} not found in local cache",
+                    hallId
+            );
+        }
+    }
+
+
+
+    @KafkaListener(
+            topics = "showtime-price-requests",
+            groupId = "${spring.kafka.consumer.group-id}",
+            containerFactory = "showtimePriceKafkaListenerContainerFactory"
+    )
+    public void listenShowtimePriceRequest(
+            ShowtimePriceRequestedEvent event,
+            Acknowledgment ack
+    ) {
+
+        try {
+
+
+
+            log.info(
+                    "SHOWTIME PRICE REQUEST RECEIVED"
+            );
+
+            log.info(
+                    "BookingId={}",
+                    event.getBookingId()
+            );
+
+            log.info(
+                    "ShowtimeId={}",
+                    event.getShowtimeId()
+            );
+
+
+
+
+
+            ShowTime showtime =
+                    showtimeRepository
+                            .findById(event.getShowtimeId())
+                            .orElseThrow(() ->
+                                    new RuntimeException(
+                                            "Showtime not found: "
+                                                    + event.getShowtimeId()
+                                    )
+                            );
+
+            log.info(
+                    "Showtime found. id={}, basePrice={}",
+                    showtime.getId(),
+                    showtime.getBasePrice()
+            );
+
+
+
+            ShowtimePriceResponseEvent response =
+                    new ShowtimePriceResponseEvent(
+                            event.getBookingId(),
+                            showtime.getId(),
+                            showtime.getMovieId(),
+                            showtime.getBasePrice()
+                    );
+
+            log.info(
+                    "Created price response. bookingId={}, price={}",
+                    response.getBookingId(),
+                    response.getBasePrice()
+            );
+
+
+
+            showtimePriceKafkaProducer
+                    .publish(
+                            event.getBookingId(),
+                            response
+                    )
+                    .whenComplete((result, ex) -> {
+
+                        if (ex == null) {
+
+
+                            log.info(
+                                    "SHOWTIME PRICE RESPONSE SENT SUCCESSFULLY"
+                            );
+
+                            log.info(
+                                    "BookingId={}",
+                                    event.getBookingId()
+                            );
+
+                            log.info(
+                                    "Price={}",
+                                    showtime.getBasePrice()
+                            );
+
+                            log.info(
+                                    "Topic=showtime-price-responses"
+                            );
+
+                            log.info(
+                                    "Partition={}",
+                                    result.getRecordMetadata().partition()
+                            );
+
+                            log.info(
+                                    "Offset={}",
+                                    result.getRecordMetadata().offset()
+                            );
+
+
+
+                        } else {
+
+
+
+                            log.error(
+                                    "FAILED TO SEND SHOWTIME PRICE RESPONSE"
+                            );
+
+                            log.error(
+                                    "BookingId={}",
+                                    event.getBookingId()
+                            );
+
+
+                        }
+                    });
+
+            ack.acknowledge();
+
+        } catch (Exception ex) {
+
+            log.error(
+                    "Failed processing showtime price request. BookingId={}",
+                    event.getBookingId(),
+                    ex
+            );
         }
     }
 }

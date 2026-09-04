@@ -89,6 +89,7 @@ public class ShowTimeServiceImplementation implements ShowTimeService {
                 request.getHallId(),
                 request.getEndTime(),
                 request.getStartTime()
+
         )) {
             log.warn("showTime with hallId {} and startTime {} and endTime {} already exists" , request.getHallId() , request.getStartTime() , request.getEndTime());
             throw new IllegalArgumentException("showTime with hallId " + request.getHallId() + " and startTime " + request.getStartTime() + " and endTime " + request.getEndTime() + " already exists");
@@ -143,10 +144,11 @@ public class ShowTimeServiceImplementation implements ShowTimeService {
             log.warn("while updating the endTime {} is not after startTime {}" , request.getEndTime() , request.getStartTime());
             throw new IllegalArgumentException("endTime " + request.getEndTime() + " is not after startTime " + request.getStartTime());
         }
-        if (showTimeRepository.existsByHallIdAndStartTimeLessThanAndEndTimeGreaterThan(
+        if (showTimeRepository.existsByHallIdAndStartTimeLessThanAndEndTimeGreaterThanAndIdNot(
                 showTime.getHallId(),
                 request.getEndTime(),
-                request.getStartTime()
+                request.getStartTime(),
+                showTime.getId()
         )) {
             log.warn("showTime of startTime {} and endTime {} already exists"  , request.getStartTime() , request.getEndTime());
             throw new IllegalArgumentException("showTime with hall  startTime " + request.getStartTime() + " and endTime " + request.getEndTime() + " already exists");
@@ -157,7 +159,7 @@ public class ShowTimeServiceImplementation implements ShowTimeService {
 
         CompletableFuture<SendResult<String , ShowtimeEvent>> future = kafkaProducerService.publish(
                 new ShowtimeEvent(
-                        ShowtimeEvent.EventType.SHOWTIME_DELETED,
+                        ShowtimeEvent.EventType.SHOWTIME_UPDATED,
                         savedShowTime.getId(),
                         savedShowTime.getMovieId(),
                         savedShowTime.getHallId(),
@@ -192,7 +194,7 @@ public class ShowTimeServiceImplementation implements ShowTimeService {
 
         CompletableFuture<SendResult<String , ShowtimeEvent>> future = kafkaProducerService.publish(
                 new ShowtimeEvent(
-                        ShowtimeEvent.EventType.SHOWTIME_UPDATED,
+                        ShowtimeEvent.EventType.SHOWTIME_DELETED,
                         showTime.getId(),
                         showTime.getMovieId(),
                         showTime.getHallId(),
