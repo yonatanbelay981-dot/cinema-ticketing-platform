@@ -24,11 +24,13 @@ public class SeatReservation {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     @Column(nullable = false)
+    private UUID bookingId;
+    @Column(nullable = false)
     private UUID showtimeId;
     @Column(nullable = false)
     private UUID seatId;
     @Column(nullable = false)
-    private UUID userId;
+    private String keycloakUserId;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ReservationStatus status;

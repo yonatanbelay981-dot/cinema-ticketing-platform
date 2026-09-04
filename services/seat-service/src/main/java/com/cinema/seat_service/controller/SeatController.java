@@ -24,8 +24,8 @@ public class SeatController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<SeatResponse>>> getAllSeatsByHallId(@RequestParam UUID hallId, @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
-        Page<SeatResponse> seats = seatService.getAllSeatsByHallId(hallId, pageable);
+    public ResponseEntity<ApiResponse<List<SeatResponse>>> getAllSeatsByHallId(@RequestParam UUID hallId) {
+        List<SeatResponse> seats = seatService.getAllSeatsByHallId(hallId);
         return ResponseEntity.ok(new ApiResponse<>(true, "Seats retrieved successfully", seats));
     }
 
@@ -43,16 +43,13 @@ public class SeatController {
     @GetMapping("/showtime")
     public ResponseEntity<ApiResponse<List<ShowtimeSeatResponse>>> getSeatMapForShowtime(
             @RequestParam UUID hallId,
+
             @RequestParam UUID showtimeId) {
-        List<ShowtimeSeatResponse> seatMap = seatService.getSeatMapForShowtime(hallId, showtimeId);
+        List<ShowtimeSeatResponse> seatMap = seatService.getSeatMapForShowtime(hallId , showtimeId);
         return ResponseEntity.ok(new ApiResponse<>(true, "Showtime seat map retrieved successfully", seatMap));
     }
 
-    @PostMapping("/lock")
-    public ResponseEntity<ApiResponse<List<UUID>>> lockSeats(@Valid @RequestBody LockSeatsRequest request) {
-        List<UUID> lockedSeatIds = seatService.lockSeatsForCheckout(request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Seats locked successfully", lockedSeatIds));
-    }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteSeat(@PathVariable UUID id) {

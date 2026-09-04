@@ -1,6 +1,7 @@
 package com.cinema.seat_service.entity;
 
 
+import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,6 +12,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Entity
 public class ShowTimeCache {
     private String eventType;
     @Id
