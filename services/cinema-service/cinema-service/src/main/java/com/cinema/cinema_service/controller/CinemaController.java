@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -87,7 +88,7 @@ public class CinemaController {
                 )
         );
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<CinemaResponse>> createCinema(  @Valid @RequestBody CreateCinemaRequest request){
         CinemaResponse response = cinemaService.createCinema(request);
@@ -100,8 +101,9 @@ public class CinemaController {
         );
 
     }
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<CinemaResponse>> updateCinema(@PathVariable UUID id ,   @RequestBody  UpdateCinemaRequest request){
+    public ResponseEntity<ApiResponse<CinemaResponse>> updateCinema(@PathVariable UUID id ,   @Valid @RequestBody  UpdateCinemaRequest request){
         CinemaResponse response = cinemaService.updateCinema(id ,request);
         return ResponseEntity.status(HttpStatus.OK).body(
                 new ApiResponse<>(
@@ -112,7 +114,7 @@ public class CinemaController {
         );
 
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCinema(@PathVariable UUID id) {
         cinemaService.deleteCinemaById(id);

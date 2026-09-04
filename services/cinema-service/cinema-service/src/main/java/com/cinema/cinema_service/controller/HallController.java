@@ -9,6 +9,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -33,7 +34,7 @@ public class HallController {
                 )
         );
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<HallResponse>> createHall(@Valid @RequestBody CreateHallRequest request){
         HallResponse hall   = hallServices.createHall(request);
@@ -45,7 +46,7 @@ public class HallController {
                 )
         );
     }
-
+@PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<HallResponse>> updateHall(@PathVariable("id") UUID id, @Valid @RequestBody UpdateHallRequest request){
         HallResponse hall   = hallServices.updateHall(id ,  request);
@@ -83,7 +84,7 @@ public class HallController {
                 )
         );
     }
-
+@PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteHallById(@PathVariable("id") UUID id){
         hallServices.deleteHallById(id);

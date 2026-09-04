@@ -13,7 +13,7 @@ import java.util.Map;
 public class KafkaConfig {
     @Value("${app.kafka.topic.cinema-events}")
     private String cinemaEvent;
-    @Value("${app.kafka.topic.hall-events}")
+    @Value("${app.kafka.topic.hall-availability-events}")
     private String hallEvent;
 
     @Bean
