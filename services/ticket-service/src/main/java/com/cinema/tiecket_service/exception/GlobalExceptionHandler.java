@@ -11,4 +11,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleTicketNotFoundException(TicketNotFoundException ex) {
       return ResponseEntity.status(404).body(new ApiResponse<>(false, ex.getMessage(), null));
     }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalStateException(
+            IllegalStateException ex
+    ) {
+        return ResponseEntity
+                .status(409)
+                .body(new ApiResponse<>(
+                        false,
+                        ex.getMessage(),
+                        null
+                ));
+    }
 }

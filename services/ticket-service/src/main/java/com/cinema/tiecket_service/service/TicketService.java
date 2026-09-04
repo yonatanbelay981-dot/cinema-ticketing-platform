@@ -10,13 +10,14 @@ import java.util.UUID;
 
 public interface TicketService {
    Page<TicketResponse> getAllTickets(Pageable pageable);
-    TicketResponse getTicketById(UUID id);
-    TicketResponse getTicketByBookingId(UUID bookingId);
-    void cancelTicket(UUID ticketId);
+   TicketResponse getTicketById(UUID id  ,String keycloakUserId );
+    TicketResponse getTicketByBookingId(UUID bookingId , String keycloakUserId);
+    void cancelTicket(UUID ticketId , String keycloakUserId);
     TicketResponse useTicket(UUID ticketId);
      void createTicketFromPayment(PaymentProcessedEvent event) ;
-      byte[] generateTicketQrCode(UUID ticketId);
+      byte[] generateTicketQrCode(UUID ticketId , String keycloakUserId);
       TicketResponse getByQrcode(String qrCode);
 
 
+ Page<TicketResponse> getMyTickets(String keycloakUserId, Pageable pageable);
 }

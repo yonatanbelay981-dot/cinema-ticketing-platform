@@ -19,6 +19,8 @@ import java.util.UUID;
         @GeneratedValue(strategy = GenerationType.UUID)
         @Column(nullable = false)
     private UUID id;
+    @Column(nullable = false )
+    private String keycloakUserId;
         @Column(nullable = false  , unique = true)
     private UUID bookingId;
         @Column(nullable = false , unique = true)

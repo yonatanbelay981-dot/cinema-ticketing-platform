@@ -6,6 +6,7 @@ import java.util.UUID;
 public record PaymentProcessedEvent(
         UUID paymentId,
         UUID bookingId,
+        String keycloakUserId,
         BigDecimal amount,
         String status,
         String transactionReference) {

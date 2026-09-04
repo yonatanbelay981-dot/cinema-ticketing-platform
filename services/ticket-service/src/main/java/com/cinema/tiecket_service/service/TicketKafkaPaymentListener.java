@@ -18,7 +18,7 @@ public class TicketKafkaPaymentListener {
 
     }
 
-    @KafkaListener(topics = "payment-event", groupId = "ticket-service")
+    @KafkaListener(topics = "payment-events", groupId = "ticket-service" ,  containerFactory = "paymentProcessedEventConcurrentKafkaListenerContainerFactory")
     public void handlePaymentProcessed(PaymentProcessedEvent event) {
         log.info(
                 "Received PAYMENT_PROCESSED event for booking {} with status {}",

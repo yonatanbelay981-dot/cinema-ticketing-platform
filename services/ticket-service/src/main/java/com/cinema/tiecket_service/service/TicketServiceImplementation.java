@@ -20,6 +20,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
+
 @Service
 @Slf4j
 public class TicketServiceImplementation implements TicketService{
@@ -38,36 +39,63 @@ public class TicketServiceImplementation implements TicketService{
     }
 
     @Override
-    public TicketResponse getTicketById(UUID id) {
-        log.info("Fetching ticket with id {}", id);
-        Ticket ticket = ticketRepository.findById(id)
+    public TicketResponse getTicketById(UUID id ,  String  keycloakUserId ) {
+        log.info("Fetching ticket with id user id {}", id);
+
+        Ticket ticket = ticketRepository.findByIdAndKeycloakUserId(id , keycloakUserId)
                 .orElseThrow(() -> {
-                    log.warn("while fetching Ticket with id {} was not found", id);
-                    return new TicketNotFoundException("Ticket with id " + id + " was not found");
+                    log.warn("while fetching Ticket with id  {}  and keycloak userId {} was not found", id , keycloakUserId);
+                    return new TicketNotFoundException("Ticket with  id " + id + " and userId "+keycloakUserId+" was not found");
                 });
-        log.info("Ticket with id {} found successfully", id);
+        log.info("Ticket with id  {} found successfully", id);
+        return mapTOTIcketResponse(ticket);
+    }
+
+
+    @Override
+    public TicketResponse getTicketByBookingId(UUID bookingId ,  String keycloakUserId) {
+        log.info(
+                "Fetching ticket with booking id {} for user {}",
+                bookingId,
+                keycloakUserId
+        );
+
+        Ticket ticket = ticketRepository
+                .findByBookingIdAndKeycloakUserId(
+                        bookingId,
+                        keycloakUserId
+                )
+                .orElseThrow(() -> {
+                    log.warn(
+                            "Ticket with booking id {} for user {} was not found",
+                            bookingId,
+                            keycloakUserId
+                    );
+
+                    return new TicketNotFoundException(
+                            "Ticket not found"
+                    );
+                });
+
         return mapTOTIcketResponse(ticket);
     }
 
     @Override
-    public TicketResponse getTicketByBookingId(UUID bookingId) {
-            log.info("Fetching ticket with booking id {}", bookingId);
-            Ticket ticket = ticketRepository.findByBookingId(bookingId)
-                    .orElseThrow(() -> {
-                        log.warn("Ticket with booking id {} was not found", bookingId);
-                        return new TicketNotFoundException("Ticket with booking id " + bookingId + " was not found");
-                    });
-            log.info("Ticket with booking id {} found successfully", bookingId);
-            return mapTOTIcketResponse(ticket);
-    }
-
-    @Override
-    public void cancelTicket(UUID ticketId) {
+    public void cancelTicket(UUID ticketId ,  String keycloakUserId) {
         log.info("Cancelling ticket with id {}", ticketId);
-        Ticket ticket  =  ticketRepository.findById(ticketId).orElseThrow(()->{
-            log.warn("Ticket with id {} was not found", ticketId);
-            return new TicketNotFoundException("Ticket with id " + ticketId + " was not found");
-        });
+        Ticket ticket = ticketRepository
+                .findByIdAndKeycloakUserId(ticketId, keycloakUserId)
+                .orElseThrow(() -> {
+                    log.warn(
+                            "Ticket {} does not belong to user {}",
+                            ticketId,
+                            keycloakUserId
+                    );
+
+                    return new TicketNotFoundException(
+                            "Ticket not found"
+                    );
+                });
         if (ticket.getStatus() != TicketStatus.ACTIVE) {
             log.warn(
                     "Ticket {} cannot be cancelled because its status is {}",
@@ -130,7 +158,7 @@ public class TicketServiceImplementation implements TicketService{
         }
 
         Ticket ticket = new Ticket();
-
+        ticket.setKeycloakUserId(event.keycloakUserId());
         ticket.setBookingId(event.bookingId());
         ticket.setQrCode(UUID.randomUUID().toString());
         ticket.setStatus(TicketStatus.ACTIVE);
@@ -146,13 +174,20 @@ public class TicketServiceImplementation implements TicketService{
 
     }
     @Override
-    public byte[] generateTicketQrCode(UUID ticketId) {
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() ->
-                        new TicketNotFoundException(
-                                "Ticket with id " + ticketId + " was not found"
-                        )
-                );
+    public byte[] generateTicketQrCode(UUID ticketId , String keycloakUserId) {
+        Ticket ticket = ticketRepository
+                .findByIdAndKeycloakUserId(ticketId, keycloakUserId)
+                .orElseThrow(() -> {
+                    log.warn(
+                            "Ticket {} does not belong to user {}",
+                            ticketId,
+                            keycloakUserId
+                    );
+
+                    return new TicketNotFoundException(
+                            "Ticket not found"
+                    );
+                });
         try {
             return generateQrCode(ticket.getQrCode(), 300, 300);
         } catch (WriterException | IOException e) {
@@ -194,6 +229,15 @@ public class TicketServiceImplementation implements TicketService{
 
         return ticket1;
     }
+
+
+    @Override
+    public Page<TicketResponse> getMyTickets(String keycloakUserId, Pageable pageable) {
+        return ticketRepository
+                .findByKeycloakUserId(keycloakUserId, pageable)
+                .map(this::mapTOTIcketResponse);
+    }
+
 
     private byte[] generateQrCode(String text  , int width  ,   int height) throws WriterException, IOException {
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
