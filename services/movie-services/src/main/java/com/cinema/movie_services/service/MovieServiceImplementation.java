@@ -1,5 +1,6 @@
 package com.cinema.movie_services.service;
 
+import com.cinema.common_lib.event.MovieSearchEvent;
 import com.cinema.movie_services.dto.request.CreateMovieRequest;
 import com.cinema.movie_services.dto.request.UpdateMovieRequest;
 import com.cinema.movie_services.dto.response.MovieResponse;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -27,15 +29,17 @@ import java.util.concurrent.CompletableFuture;
 
 public class MovieServiceImplementation implements  MovieService {
 
-    public MovieServiceImplementation(MovieRepository movieRepository, GenreRepository genreRepository, KafkaProducerService kafkaProducerService) {
+    public MovieServiceImplementation(MovieRepository movieRepository, GenreRepository genreRepository, KafkaProducerService kafkaProducerService, MovieSearchKafkaProducer movieSearchKafkaProducer) {
         this.movieRepository = movieRepository;
         this.genreRepository = genreRepository;
         this.kafkaProducerService = kafkaProducerService;
+        this.movieSearchKafkaProducer = movieSearchKafkaProducer;
     }
 
     private final MovieRepository movieRepository;
     private final GenreRepository genreRepository;
     private final KafkaProducerService kafkaProducerService;
+    private final MovieSearchKafkaProducer movieSearchKafkaProducer;
 
     @Override
    public Page<MovieResponse> getAllMovies(Pageable pageable){
@@ -101,6 +105,47 @@ public class MovieServiceImplementation implements  MovieService {
                     savedMovie.getId(),
                     ex
             );
+            return null;
+        });
+
+
+        CompletableFuture<SendResult<String, MovieSearchEvent>> searchEventFuture =
+                movieSearchKafkaProducer.publishSearchEvent(
+                        new MovieSearchEvent(
+                                MovieSearchEvent.EventType.MOVIE_CREATED,
+                                savedMovie.getId(),
+                                savedMovie.getTitle(),
+                                savedMovie.getDescription(),
+                                savedMovie.getDuration(),
+                                savedMovie.getLanguage(),
+                                savedMovie.getReleaseDate(),
+                                savedMovie.getAgeRating(),
+                                savedMovie.getPosterUrl(),
+                                savedMovie.getTrailerUrl(),
+                                savedMovie.getStatus().name(),
+                                savedMovie.getGenres().stream().map(Genre::getName).toList(),
+                                savedMovie.getCreatedAt(),
+                                savedMovie.getUpdatedAt()
+
+                        )
+                );
+
+        searchEventFuture.thenAccept(result -> {
+
+            log.info(
+                    "Successfully Published MOVIE_SEARCH event for movie {} at offset {}",
+                    savedMovie.getId(),
+                    result.getRecordMetadata().offset()
+            );
+
+        }).exceptionally(ex -> {
+
+            log.error(
+                    "Failed to publish MOVIE_SEARCH event for movie {}",
+                    savedMovie.getId(),
+                    ex
+            );
+
             return null;
         });
 
@@ -202,22 +247,23 @@ public class MovieServiceImplementation implements  MovieService {
         }
 
         movie.setGenres(genres);
+        Movie savedMovie = movieRepository.save(movie);
 
         log.info("Movie {} updated successfully", id);
 
         CompletableFuture<SendResult<String  , MovieEvent>>  future =  kafkaProducerService.publish(
                 new MovieEvent(
                         MovieEvent.EventType.MOVIE_UPDATED,
-                        movie.getId(),
-                        movie.getTitle(),
-                        movie.getDuration(),
-                        movie.getLanguage()
+                        savedMovie.getId(),
+                        savedMovie.getTitle(),
+                        savedMovie.getDuration(),
+                        savedMovie.getLanguage()
                 )
         );
         future.thenAccept((result->{
             log.info(
                     "Published UPDATED event for movie {} at offset {}",
-                    movie.getId(),
+                    savedMovie.getId(),
                     result.getRecordMetadata().offset()
             );
 
@@ -225,13 +271,59 @@ public class MovieServiceImplementation implements  MovieService {
         )).exceptionally((ex)->{
             log.error(
                     "Failed publishing UPDATED event for movie {}",
-                    movie.getId(),
+                    savedMovie.getId(),
                     ex
             );
+
+            return null;
+
+        });
+
+        CompletableFuture<SendResult<String, MovieSearchEvent>> searchEventFuture =
+                movieSearchKafkaProducer.publishSearchEvent(
+                        new MovieSearchEvent(
+                                MovieSearchEvent.EventType.MOVIE_UPDATED,
+                                savedMovie.getId(),
+                                savedMovie.getTitle(),
+                                savedMovie.getDescription(),
+                                savedMovie.getDuration(),
+                                savedMovie.getLanguage(),
+                                savedMovie.getReleaseDate(),
+                                savedMovie.getAgeRating(),
+                                savedMovie.getPosterUrl(),
+                                savedMovie.getTrailerUrl(),
+                                savedMovie.getStatus().name(),
+                                savedMovie.getGenres().stream().map(Genre::getName).toList(),
+                                savedMovie.getCreatedAt(),
+                                savedMovie.getUpdatedAt()
+
+                        )
+                );
+
+        searchEventFuture.thenAccept(result -> {
+
+            log.info(
+                    "Published MOVIE_SEARCH event for movie {} at offset {}",
+                    savedMovie.getId(),
+                    result.getRecordMetadata().offset()
+            );
+
+        }).exceptionally(ex -> {
+
+            log.error(
+                    "Failed to publish MOVIE_SEARCH event for movie {}",
+                    savedMovie.getId(),
+                    ex
+            );
+
             return null;
         });
 
-        return mapToMovieResponse(movieRepository.save(movie));
+
+
+
+
+        return mapToMovieResponse(savedMovie);
     }
 
     @Override
@@ -267,6 +359,45 @@ public class MovieServiceImplementation implements  MovieService {
             );
             return null;
         });
+        CompletableFuture<SendResult<String, MovieSearchEvent>> searchEventFuture =
+                movieSearchKafkaProducer.publishSearchEvent(
+                        new MovieSearchEvent(
+                                MovieSearchEvent.EventType.MOVIE_DELETED,
+                                movie.getId(),
+                                movie.getTitle(),
+                                movie.getDescription(),
+                                movie.getDuration(),
+                                movie.getLanguage(),
+                                movie.getReleaseDate(),
+                                movie.getAgeRating(),
+                                movie.getPosterUrl(),
+                                movie.getTrailerUrl(),
+                                movie.getStatus().name(),
+                                movie.getGenres().stream().map(Genre::getName).toList(),
+                                movie.getCreatedAt(),
+                                movie.getUpdatedAt()
+
+                        )
+                );
+
+        searchEventFuture.thenAccept(result -> {
+
+            log.info(
+                    "Published MOVIE_SEARCH event for movie {} at offset {}",
+                    movie.getId(),
+                    result.getRecordMetadata().offset()
+            );
+
+        }).exceptionally(ex -> {
+
+            log.error(
+                    "Failed to publish MOVIE_SEARCH event for movie {}",
+                    movie.getId(),
+                    ex
+            );
+
+            return null;
+        });
     }
 
     private MovieResponse mapToMovieResponse(Movie movie) {
@@ -282,6 +413,8 @@ public class MovieServiceImplementation implements  MovieService {
     response.setTrailerUrl(movie.getTrailerUrl());
     response.setStatus(movie.getStatus());
     response.setGenres(movie.getGenres().stream().map(Genre::getName).toList());
+    response.setCreatedAt(movie.getCreatedAt());
+    response.setUpdatedAt(movie.getUpdatedAt());
     return response;
 
 

@@ -13,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -93,7 +94,7 @@ public class MovieController {
                 )
         );
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<MovieResponse>> createMovie(@Valid @RequestBody CreateMovieRequest movieRequest) {
         MovieResponse movie = movieService.createMovie(movieRequest);
@@ -108,6 +109,7 @@ public class MovieController {
 
         );
     }
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<MovieResponse>> updateMovie(@PathVariable UUID id, @Valid @RequestBody UpdateMovieRequest movieRequest) {
         MovieResponse movie = movieService.updateMovie(id, movieRequest);
@@ -119,6 +121,7 @@ public class MovieController {
                 )
         );
     }
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteMovie(@PathVariable UUID id) {
         movieService.deleteMovie(id);

@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -59,7 +60,7 @@ public class GenreController {
         );
     }
 
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<GenreResponse>> createGenre(
             @Valid @RequestBody CreateGenreRequest request
@@ -77,7 +78,7 @@ public class GenreController {
                 );
     }
 
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<GenreResponse>> updateGenre(
             @PathVariable UUID id,
@@ -95,7 +96,7 @@ public class GenreController {
         );
     }
 
-
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteGenre(
             @PathVariable UUID id
